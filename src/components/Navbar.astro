@@ -1,6 +1,8 @@
 ---
 const links = [
   { href: "/", label: "Home" },
+  { href: "/problems", label: "Problems"},
+  { href: "/editorials", label: "Editorials"},
   { href: "/about", label: "About" },
   { href: "/blog", label: "Blog" },
 ];
@@ -9,7 +11,7 @@ const currentPath = Astro.url.pathname;
 ---
 
 <nav>
-  <a href="/" class="logo"><img src="../assets/bpp2_logo.png"></a>
+  <a href="/" class="logo"><img src="/src/assets/bpp2_logo.png" style="height:2em"></a>
   <ul>
     {links.map(({ href, label }) => (
       <li>
@@ -26,7 +28,7 @@ const currentPath = Astro.url.pathname;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem;
+    padding: 2vh 5vh;
     background: #1a1a2e;
   }
   ul {
