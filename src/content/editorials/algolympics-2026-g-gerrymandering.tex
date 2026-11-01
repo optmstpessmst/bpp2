@@ -1,0 +1,115 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\setlength{\emergencystretch}{2em}
+\begin{document}
+\begin{center}
+  {\LARGE\bfseries G --- Gerrymandering}\\[0.5em]
+  {\small Two pointers, matrices, DP, sliding window}
+\end{center}
+
+\subsection*{1. The main idea}
+
+We need to count the subregions whose corruptness is at least $c$.
+The main idea is that corruptness cannot go down when we extend a
+subregion. If we can fix a larger subregion, then we have also fixed
+every smaller subregion inside it, using at most that many changes.
+
+So the problem boils down to this: for every left endpoint $l$, find the
+first right endpoint $r$ where we need at least $c$ changes. Every right
+endpoint from $r$ to $n$ also works, so we add $n-r+1$ to the answer.
+The columns are numbered from $1$ to $n$.
+
+We can do this with two pointers since moving $l$ to the right cannot
+make the first working $r$ move left. Keep extending the window until
+we need at least $c$ changes, count the intervals, then remove the leftmost
+column and repeat. If we reach the end and still have fewer than $c$
+changes, we can stop. Now we just need a data structure to tell us the
+minimum number of changes for the current window.
+
+\subsection*{2. The transition table}
+Since there are only three rows, there are only $3\cdot2\cdot2=12$
+valid ways to color one column. The top and bottom can have the same
+color. We only care about adjacent cells. These 12 configurations are
+our DP states. Two states can go next to each other if they have
+different colors in all three rows.
+
+Let $w_i(b)$ be the number of changes needed to turn column $i$ into
+state $b$. For a fixed interval, let $dp_i(b)$ be the minimum cost so far
+if column $i$ ends up in state $b$. The transition is just
+\[
+  dp_i(b)=w_i(b)+\min_{a\text{ compatible with }b}dp_{i-1}(a).
+\]
+For the first column, we start with $dp_l(b)=w_l(b)$.
+
+\subsection*{3. Turning the DP into matrices}
+
+We can put the transition into a $12\times12$ matrix:
+\[
+  A_i[a,b]=\begin{cases}
+    w_i(b),&a\text{ and }b\text{ are compatible},\\
+    \infty,&\text{otherwise}.
+  \end{cases}
+\]
+To combine two transitions, try every state $k$ between them and take
+the cheapest option:
+\[
+  (A\otimes B)[a,b]=\min_k\bigl(A[a,k]+B[k,b]\bigr).
+\]
+This is called \emph{min-plus matrix multiplication}. Combining all the
+matrices from $l$ to $r$ gives us the DP for that window, and the smallest
+entry is the answer for its corruptness.
+
+The base case is $dp_l(b)=w_l(b)$. The first column has no restriction
+from a previous column.
+
+\subsection*{4. The segment tree was almost enough}
+
+\begin{quote}
+\small\itshape
+We had the segtree solution during the contest, but it was too slow.
+I even asked my teammate if there was a trick where we only stored
+the nodes inside the window. Turns out the thing we needed was just
+two stacks. Mogged by two stacks.
+\end{quote}
+
+A segment tree can maintain this matrix product, but it adds a
+$\log n$ factor. Here we only add columns on the right and remove them
+on the left. We never change anything in the middle. Think of the
+window as a deque, where each move changes just one end:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.7}
+\begin{tabular}{rc}
+Current window &
+  $\boxed{A_l}\;\boxed{A_{l+1}}\;\boxed{\cdots}\;\boxed{A_r}$ \\
+& $\Big\downarrow\quad\text{push one column on the right}$ \\
+Extend $r$ &
+  $\boxed{A_l}\;\boxed{A_{l+1}}\;\boxed{\cdots}\;\boxed{A_r}\;\boxed{A_{r+1}}$ \\
+& $\Big\downarrow\quad\text{pop one column from the left}$ \\
+Advance $l$ &
+  $\boxed{A_{l+1}}\;\boxed{\cdots}\;\boxed{A_r}\;\boxed{A_{r+1}}$
+\end{tabular}
+\end{center}
+We may push several times before popping, but each individual move
+adds or removes only one column. We only use the deque as a queue:
+push at the back, pop at the front.
+
+This is where \emph{SWAG (sliding window aggregation)} comes in. It lets
+us maintain the combined value of a queue using two stacks. The only
+thing we need is an associative operation, meaning we can change the
+grouping without changing the answer. Our matrix multiplication has
+this property. SWAG keeps the matrices in their original order and
+supports each window move using an amortized constant number of merges.
+So it gives us exactly what the two-pointer approach needs, without
+the extra $\log n$ factor.
+
+\subsection*{5. Complexity}
+
+Both pointers move at most $n$ times. With SWAG, this means we only
+do $O(n)$ matrix multiplications overall. Each one takes $O(12^3)$ time,
+so the time complexity is $O(12^3n)$ and requires $O(12^2n)$ space.
+
+\end{document}
