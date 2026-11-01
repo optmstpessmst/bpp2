@@ -12,6 +12,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^14.4.3",
     "@astrojs/markdoc": "^2.1.2",
     "@astrojs/react": "^7.1.2",
     "@keystatic/astro": "^6.0.0",

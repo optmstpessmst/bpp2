@@ -5,7 +5,10 @@ import keystatic from '@keystatic/astro';
 
 import markdoc from '@astrojs/markdoc';
 
+import cloudflare from '@astrojs/cloudflare';
+
 export default defineConfig({
-  output: 'static', 
+  output: 'static',
   integrations: [react(), keystatic(), markdoc()],
+  adapter: cloudflare(),
 });
