@@ -1,0 +1,82 @@
+---
+import Layout from "../components/Layout.astro";
+import Member from "../components/Member.astro";
+
+const team = [
+  {
+    name: "Krys Darilay",
+    role: "Website, Editorials",
+    image: "/team/sbibo.jpg",
+    links: [
+      { label: "Codeforces", href: "https://codeforces.com/profile/optmstpessmst", icon: "codeforces.png" },
+    ],
+    blurb: "NOI.PH Finalist 2026. Loves graphs problems. And Fenwick trees!",
+  },
+  {
+    name: "Harvey Chua",
+    role: "Website, Editorials",
+    image: "/team/sbibo.jpg",
+    links: [
+      { label: "Codeforces", href: "https://codeforces.com/profile/harvsftw", icon: "codeforces.png" },
+    ],
+    blurb: "I love solving every problem possible using a segment tree.",
+  },
+  {
+    name: "Yhuan Garcia",
+    role: "Editorials",
+    image: "/team/joon.jpg",
+    links: [
+      { label: "Codeforces", href: "https://codeforces.com/profile/YhuanDebeste", icon: "codeforces.png" },
+    ],
+    blurb: "I can’t love anyone but Joon. At first I thought it was just a phase, but no; even other characters in Touhou that I used to love are meaningless to me now.",
+  },
+  {
+    name: "Dheus Garcia",
+    role: "Editorials",
+    image: "/team/shion.jpg",
+    links: [
+      { label: "Codeforces", href: "https://codeforces.com/profile/GenocideDheus", icon: "codeforces.png" },
+    ],
+    blurb: "Uh.",
+  },
+];
+
+---
+<style>
+  #main {
+    padding: 0 5vw 4rem;
+  }
+
+  .team {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5rem 3rem;
+  }
+
+  .team h1 {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 800px) {
+    .team {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+<Layout title="About">
+  <div id="main">
+    <h1>Origins</h1>
+    <p>We are a group of students that have all been part of the competitive programming scene for some time. In the autumn of 2026, we realized that finding editorials and practice problems specifically for training for competitive programming competitions felt harder than it had to be. So we decided to build the solution ourselves.</p>
+    <p>Our whole team is composed of people who have a passion for programming and algorithms, while also being interested in both the learning and teaching process. We are dedicated to creating high-quality editorials for these problems for people that have always felt that competitive programming was too intimidating.</p>
+    <h1>The Team</h1>
+    <div class="team">
+      {team.map((member) => (
+        <Member {...member} />
+      ))}
+    </div>
+  </div>
+  <p><br><br><br><br><br><br><br><br><br></p>
+</Layout>

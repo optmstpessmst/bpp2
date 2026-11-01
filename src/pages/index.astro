@@ -1,9 +1,62 @@
 ---
 import Layout from "../components/Layout.astro";
 import Hero from "../components/Hero.astro";
----
 
+const logos = [
+  { src: "noiph.png", caption: "NOI.PH" },
+  { src: "icpc.png", caption: "ICPC Manila" },
+  { src: "algolympics.png", caption: "Algolympics" },
+  { src: "trophy.png", caption: "...and other various competitions!"}
+];
+---
+<style>
+  #main {
+    padding: 0 5vw;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    padding: 2rem 4rem;
+  }
+
+  figure {
+    margin: 0;
+  }
+
+  img {
+    width: 100%;
+    aspect-ratio: 1 / 0.5;
+    object-fit: scale-down;
+    display: block;
+    border-radius: 8px;
+  }
+
+  figcaption {
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+
+  @media (max-width: 700px) {
+    .row {
+      grid-template-columns: 1fr;
+      padding: 2rem;
+    }
+  }
+</style>
 <Layout title="Home">
   <Hero/ >
-  <p>We currently writing editorials for competitions and olympiads such as:</p>
+  <div id="main">
+    <p>We are currently uploading problem statements and writing editorials for competitions and olympiads such as:</p>
+    <section class="row">
+      {logos.map((item) => (
+        <figure>
+          <img src={item.src} alt={item.caption} />
+          <figcaption>{item.caption}</figcaption>
+        </figure>
+      ))}
+    </section>
+  </div>
+  <p><br><br><br><br><br><br><br><br><br></p>
 </Layout>

@@ -1,0 +1,110 @@
+---
+interface Link {
+  href: string;
+  label: string;
+}
+
+interface Props {
+  name?: string;
+  tagline?: string;
+  links?: Link[];
+  socials?: Link[];
+}
+
+const {
+  name = "bpp2",
+  tagline = "A repository of problem statements and editorials for major Philippine competitive programming competitions.",
+  links = [
+    { href: "/", label: "Home" },
+    { href: "/problems", label: "Problems"},
+    { href: "/editorials", label: "Editorials"},
+    { href: "/about", label: "About" },
+    { href: "/blog", label: "Blog" },
+  ],
+} = Astro.props;
+
+const year = new Date().getFullYear();
+---
+
+<footer>
+  <div class="content">
+    <div class="brand">
+      <strong>{name}</strong>
+      <p>{tagline}</p>
+    </div>
+
+    <div class="column">
+      <h3>Pages</h3>
+      <ul>
+        {links.map(({ href, label }) => (
+          <li><a href={href}>{label}</a></li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <small>&copy; {year} {name}. All rights reserved.</small>
+  </div>
+</footer>
+
+<style>
+  footer {
+    background: #1a1a2e;
+    color: white;
+    padding: 2.5rem 2rem 1rem;
+  }
+
+  .content {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .brand p {
+    margin: 0.5rem 0 0;
+    opacity: 0.7;
+  }
+
+  h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  a {
+    color: white;
+    text-decoration: none;
+    opacity: 0.75;
+  }
+
+  a:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  .bottom {
+    max-width: 1100px;
+    margin: 2rem auto 0;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    text-align: center;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 700px) {
+    .content {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

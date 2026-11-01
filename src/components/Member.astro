@@ -1,0 +1,110 @@
+---
+interface Link {
+  href: string;
+  label: string;
+  icon?: string;
+}
+
+interface Props {
+  name: string;
+  image: string;
+  role?: string;
+  links?: Link[];
+  blurb?: string;
+}
+
+const { name, role, image, links = [], blurb } = Astro.props;
+---
+
+<article class="member">
+  <img class="photo" src={image} alt={name} />
+
+  <div class="info">
+    <h3>{name}</h3>
+    {role && <p class="role">{role}</p>}
+
+    {links.length > 0 && (
+      <ul class="links">
+        {links.map(({ href, label, icon }) => (
+          <li>
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {icon && <img class="icon" src={icon} alt="" />}
+              {label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+
+    {blurb && <p class="blurb">{blurb}</p>}
+    <slot />
+  </div>
+</article>
+
+<style>
+  .member {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .photo {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border: 3px solid #1a1a2e;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  h3 {
+    margin: 0 0 0.15rem;
+    font-size: 1.5rem;
+  }
+
+  .role {
+    margin: 0 0 0.6rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b6b8a;
+  }
+
+  .links {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+  }
+
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #1a1a2e;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .links a:hover {
+    text-decoration: underline;
+  }
+
+  .icon {
+    width:20px;
+    object-fit: scale-down;
+  }
+
+  .blurb {
+    margin: 0;
+  }
+
+  @media (max-width: 500px) {
+    .member {
+      flex-direction: column;
+    }
+  }
+</style>

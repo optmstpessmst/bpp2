@@ -1,0 +1,37 @@
+---
+import Layout from "../components/Layout.astro";
+import { getCollection } from "astro:content";
+
+const editorials = await getCollection("editorials");
+---
+
+<Layout title="Editorials">
+  <div id="main">
+    <h1>Editorials</h1>
+    <ul class="list">
+      {editorials.map((e) => (
+        <li>
+          <a href={`/editorials/${e.id}`}>{e.data.title}</a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Layout>
+
+<style>
+  #main {
+    padding: 0 5vw 4rem;
+  }
+  .list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .list a {
+    color: #1a1a2e;
+    font-weight: 600;
+    font-size: 1.15rem;
+  }
+</style>
