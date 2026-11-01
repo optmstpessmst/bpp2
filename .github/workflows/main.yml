@@ -23,6 +23,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y latexml
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Monolith
+        run: cargo install monolith --version 2.11.7 --locked
         
       - name: Setup Node.js
         uses: actions/setup-node@v7
