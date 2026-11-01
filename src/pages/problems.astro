@@ -1,0 +1,38 @@
+---
+import Layout from "../components/Layout.astro";
+import { getCollection } from "astro:content";
+
+const problems = await getCollection("problems");
+---
+
+<Layout title="Problems">
+  <div id="main">
+    <h1>Problems</h1>
+    <ul class="list">
+      {problems.map(({ id, data }) => (
+        <li>
+            <a href={`/problems/${id}`}>{data.title}</a>
+            {data.contest && <span class="meta"> · {data.contest}</span>}
+        </li>
+      ))}
+    </ul>
+  </div>
+</Layout>
+
+<style>
+  #main {
+    padding: 0 5vw 4rem;
+  }
+  .list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .list a {
+    color: #1a1a2e;
+    font-weight: 600;
+    font-size: 1.15rem;
+  }
+</style>

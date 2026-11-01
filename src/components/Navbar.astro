@@ -11,7 +11,7 @@ const currentPath = Astro.url.pathname;
 ---
 
 <nav>
-  <a href="/" class="logo"><img src="/src/assets/bpp2_logo.png" style="height:2em"></a>
+  <a href="/" class="logo"><img src="/bpp2.gif" style="height:2.5em" alt="bpp2 logo"></a>
   <ul>
     {links.map(({ href, label }) => (
       <li>
@@ -28,7 +28,7 @@ const currentPath = Astro.url.pathname;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 2vh 5vh;
+    padding: 1em 5vh;
     background: #1a1a2e;
   }
   ul {

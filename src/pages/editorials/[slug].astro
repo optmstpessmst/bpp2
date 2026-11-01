@@ -1,0 +1,95 @@
+---
+import Layout from "../../components/Layout.astro";
+import { getCollection, render } from "astro:content";
+
+export async function getStaticPaths() {
+  const editorials = await getCollection("editorials");
+  return editorials.map((editorial) => ({
+    params: { slug: editorial.id },
+    props: { editorial },
+  }));
+}
+
+const { editorial } = Astro.props;
+const { Content } = await render(editorial);
+const { title, contest, tags, authors } = editorial.data;
+---
+
+<Layout title={title}>
+  <br>
+  <article>
+    <a href="/editorials">&larr; All editorials</a>
+
+    <header>
+      <h1>{title}</h1>
+
+      {contest && <p class="contest">{contest}</p>}
+
+      {authors.length > 0 && (
+        <p class="authors">
+          By{" "}
+          {authors.map((a, i) => (
+            <>
+              {a.url ? (
+                <a href={a.url} target="_blank" rel="noopener noreferrer">{a.name}</a>
+              ) : (
+                a.name
+              )}
+              {i < authors.length - 1 && ", "}
+            </>
+          ))}
+        </p>
+      )}
+
+      {tags.length > 0 && (
+        <ul class="tags">
+          {tags.map((tag) => <li>{tag}</li>)}
+        </ul>
+      )}
+    </header>
+
+    <Content />
+  </article>
+</Layout>
+
+<style>
+  header {
+    margin-bottom: 2rem;
+  }
+
+  h1 {
+    margin-bottom: 0.25rem;
+  }
+
+  .contest {
+    margin: 0;
+    font-weight: 600;
+    color: #6b6b8a;
+  }
+
+  .authors {
+    margin: 0.25rem 0 0.75rem;
+  }
+
+  .tags {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tags li {
+    padding: 0.15rem 0.7rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    background: #1a1a2e;
+    border-radius: 999px;
+  }
+
+  article {
+    padding: 0 5vw;
+  }
+</style>

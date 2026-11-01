@@ -9,9 +9,10 @@ const editorials = await getCollection("editorials");
   <div id="main">
     <h1>Editorials</h1>
     <ul class="list">
-      {editorials.map((e) => (
+      {editorials.map(({ id, data }) => (
         <li>
-          <a href={`/editorials/${e.id}`}>{e.data.title}</a>
+          <a href={`/editorials/${id}`}>{data.title}</a>
+          {data.contest && <span class="meta"> · {data.contest}</span>}
         </li>
       ))}
     </ul>

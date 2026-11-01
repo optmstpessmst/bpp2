@@ -1,0 +1,68 @@
+---
+import Layout from "../../components/Layout.astro";
+import { getCollection, render } from "astro:content";
+
+export async function getStaticPaths() {
+  const problems = await getCollection("problems");
+  return problems.map((problem) => ({
+    params: { slug: problem.id },
+    props: { problem },
+  }));
+}
+
+const { problem } = Astro.props;
+const { Content } = await render(problem);
+const { title, contest, authors } = problem.data;
+---
+
+<Layout title={title}>
+  <br>
+  <article>
+    <a href="/problems">&larr; All problems</a>
+
+    <header>
+      <h1>{title}</h1>
+
+      {contest && <p class="contest">{contest}</p>}
+
+      {authors.length > 0 && (
+        <p class="authors">
+          By{" "}
+          {authors.map((a, i) => (
+            <>
+              {a.url ? (
+                <a href={a.url} target="_blank" rel="noopener noreferrer">{a.name}</a>
+              ) : (
+                a.name
+              )}
+              {a.role && ` (${a.role})`}
+              {i < authors.length - 1 && ", "}
+            </>
+          ))}
+        </p>
+      )}
+    </header>
+
+    <Content />
+  </article>
+</Layout>
+
+<style>
+  header {
+    margin-bottom: 2rem;
+  }
+  h1 {
+    margin-bottom: 0.25rem;
+  }
+  .contest {
+    margin: 0;
+    font-weight: 600;
+    color: #6b6b8a;
+  }
+  .authors {
+    margin: 0.25rem 0 0;
+  }
+  article {
+    padding: 0 5vw;
+  }
+</style>
