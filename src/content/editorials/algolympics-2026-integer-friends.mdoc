@@ -12,24 +12,25 @@ We are given integers $x < y$ (up to $10^{16}$). A **friend group of $x$ and $y$
 x = a_0 < a_1 < a_2 < \cdots < a_k = y
 ```
 
-such that for each consecutive pair, $|a*{i+1} - a_i|$ is a decimal digit of $a_i$ or of $a*{i+1}$. We must count such sequences modulo $998244353$.
+such that for each consecutive pair, $|a_{i+1} - a_i|$ is a decimal digit of $a_i$ or of $a_{i+1}$. We must count such sequences modulo $998244353$.
 
 ## Naive DP
 
-Since decimal digits live in ${0,\dots,9}$, consecutive elements differ by at most $9$. Let
+Since decimal digits live in $\{0,\dots,9\}$, consecutive elements differ by at most $9$. Let
 
 ```math
 \mathrm{dp}[n]=\#\{\text{friend groups of }x\text{ and }n\text{ ending at }n\}.
 ```
 
-Base: $\mathrm{dp}\[x]=1$, and $\mathrm{dp}\[n]=0$ for $n<x$. Perform push DP: for $i\ge x$ and $d\in{1,\dots,9}$,
+Base: $\mathrm{dp}[x]=1$, and $\mathrm{dp}[n]=0$ for $n<x$. Perform push DP: processing sources $i$ in increasing order, for $i\ge x$ and $d\in\{1,\dots,9\}$,
 
 ```math
 \mathrm{dp}[i+d]\mathrel{+}=\mathrm{dp}[i]
-\quad\text{whenever } d\in D(i)\cup D(i+d),
 ```
 
-where $D(n)$ is the set of decimal digits in $n$.
+whenever $d\in D(i)\cup D(i+d)$,
+
+where $D(n)$ is the set of **distinct** decimal digits appearing in the usual decimal representation of $n$ (no leading zeros).
 
 The implementation is straightforward, but since this is a Kevin problem, it will TLE.
 
@@ -54,32 +55,31 @@ s_8
 \end{pmatrix}.
 ```
 
-At $S*n$, the transition to $S*{n+1}$ is:
+At $S_n$, the transition to $S_{n+1}$ is:
 
-* For $0\le i\le 7$, the value $\mathrm{dp}\[n+1+i]$ shifts into position $i$. Thus
+* For $0\le i\le 7$, the value $\mathrm{dp}[n+1+i]$ shifts into position $i$. Thus
 
-```math
+  ```math
   M_n[i][i+1]=1.
-  
-```
+  ```
 
-* The value $\mathrm{dp}\[n]$ can jump by $d\in{1,\dots,9}$, landing at $n+d$. In the next state that is position $d-1$. The jump is allowed if
+* The value $\mathrm{dp}[n]$ can jump by $d\in\{1,\dots,9\}$, landing at $n+d$. In the next state that is position $d-1$. The jump is allowed if
 
-```math
+  ```math
   d\in D(n)\quad\text{or}\quad d\in D(n+d).
-  
-```
+  ```
 
   Thus
 
-```math
+  ```math
   M_n[d-1][0]=1
-  
-```
+  ```
 
   for each allowed $d$.
 
 So $S_{n+1}=M_nS_n$.
+
+One subtlety: position $8$ of $S_{n+1}$ holds $\mathrm{dp}[n+9]$, and at this moment it receives only the $d=9$ push from $\mathrm{dp}[n]$. This is intentional: each source pushes exactly once, when it sits at position $0$ and its value is final. The remaining contributions to $\mathrm{dp}[n+9]$ (pushes of sizes $8,7,\dots,1$ from $\mathrm{dp}[n+1],\dots,\mathrm{dp}[n+8]$) are added later, by $M_{n+1},\dots,M_{n+8}$, as those values reach position $0$. This is exactly the behavior of the naive DP with sources processed in increasing order.
 
 The issue is that $M_n$ depends on $n$, so we cannot immediately use matrix exponentiation.
 
@@ -133,7 +133,7 @@ Within this block, only the last three decimal digits of the index vary. Every i
 H=12345678.
 ```
 
-Notice that the last state we use is $S*{12345678991}$, not $S*{12345678992}$. If we took one more step to $S_{12345678992}$, the window would be
+Notice that the last state we use is $S_{12345678991}$, not $S_{12345678992}$. If we took one more step to $S_{12345678992}$, the window would be
 
 ```math
 S_{12345678992}=
@@ -154,7 +154,7 @@ This is why the number $10^k-9$ appears everywhere.
 Recall the transition matrix $M_n$ uses two pieces of information:
 
 * $D(n)$, the set of decimal digits appearing in $n$;
-* $D(n+d)$ for $d\in{1,\dots,9}$.
+* $D(n+d)$ for $d\in\{1,\dots,9\}$.
 
 In both cases, the high part $H$ contributes only through the **set** $D(H)$. The order of the digits of $H$ is irrelevant.
 
@@ -174,17 +174,17 @@ The digit sets agree:
 D(12345678)=D(87654321)=\{1,2,3,4,5,6,7,8\}.
 ```
 
-More precisely, for every low offset $0\le \ell\le 990$,
+More precisely, for every transition offset $0\le \ell\le 990$ (i.e. every transition with source $12345678000+\ell$),
 
 ```math
 M_{12345678000+\ell}=M_{87654321000+\ell}.
 ```
 
-The whole block $12345678xxx$ has exactly the same transition matrices as the block $87654321xxx$. For blocks with the same digit set, we only need to compute their transition matrices once.
+The whole block $[12345678000, 12345679000)$ has exactly the same transition matrices as the block $[87654321000, 87654322000)$. For blocks with the same digit set, we only need to compute their transition matrices once.
 
 ### How many different blocks do we need?
 
-A digit set is a subset of ${0,1,\dots,9}$, so there are at most
+A digit set is a subset of $\{0,1,\dots,9\}$, so there are at most
 
 ```math
 2^{10}=1024
@@ -203,29 +203,32 @@ Define $\operatorname{Lift}(k,F)$ to apply the first $10^k - 9$ transitions with
 ```math
   
 S_L \longmapsto S_{L + 10^k - 9}.  
+  
 ```
 
-For example, when $k = 2$, the lift maps $S*{L+0}$ to $S*{L+91}$, using the transitions with source indices $L+0, L+1, \ldots, L+90$. For a block beginning at $L$, the corresponding mapping is
+For example, when $k = 2$, the lift maps $S_{L+0}$ to $S_{L+91}$, using the transitions with source indices $L+0, L+1, \ldots, L+90$. For $k=2$, the corresponding mapping for a block beginning at $L$ is
 
 ```math
   
 S_L \longmapsto S_{L+91}.  
+  
 ```
 
-We still intentionally omit the final nine transitions, to keep the high part consistent across all $S$.
+We still intentionally omit the final nine transitions, to keep the high part consistent across all $S_n$.
 
 ### Base case
 
-For $k=1$, the safe low range is $0,\dots,1$. The $\operatorname{Lift}(1,F)$ is just the single transition matrix $M_{H\cdot10^k}$ that does
+For $k=1$, only the transition at offset $0$ is safe, since $10^1-9=1$. $\operatorname{Lift}(1,F)$ is just the single transition matrix $M_{H\cdot 10}$ that does
 
 ```math
   
-S_{H\cdot10^1} \longmapsto S_{H\cdot10^1+1}.  
+S_{H\cdot 10^1} \longmapsto S_{H\cdot 10^1+1}.  
+  
 ```
 
 ### Recursive construction
 
-To build $\operatorname{Lift}(k,F)$, split the offsets of $L$ $[0,10^k-9)$ into ten parts according to the most significant decimal digit $d=0,1,\dots,9$. For example, if we have $k=3$, we end up with the subblocks $[0, 100), \dots, [800, 900),  [900, 991)$.
+To build $\operatorname{Lift}(k,F)$, split the transition offsets $[0,10^k-9)$ of the block into ten runs according to the most significant decimal digit $d=0,1,\dots,9$ of the offset. For example, if we have $k=3$, we end up with the subblocks $[0, 100), \dots, [800, 900), [900, 991)$.
 
 For $d=0,1,\dots,8$:
 
@@ -234,45 +237,45 @@ For $d=0,1,\dots,8$:
 
 For $d=9$:
 
-* Use only $\operatorname{Lift}(k-1,F\cup{9})$ and stop there.
-* Its last nine transitions are exactly the ones $\operatorname{Lift}(k,F)$ wants to omit, so we do not add them back.
+* Use only $\operatorname{Lift}(k-1,F\cup\{9\})$ and stop there.
+* The nine transitions it omits are precisely the last nine transitions of the whole block (offsets $10^k-9,\dots,10^k-1$), i.e. exactly the ones $\operatorname{Lift}(k,F)$ wants to omit, so we do not add them back.
 
 Thus each subblock is "big precomputed piece plus nine naive steps," except the final subblock, which is "big precomputed piece only."
 
 ### Performing lifting for nearly-arbitrary power of 10-length blocks
 
-To move a state across a block $[L,L+10^k)$, where $L$ is a multiple of $10^k$, i.e. the lowest $k$ decimal digits of $L$ are zero. Then:
+To move the state across a whole block $[L,L+10^k)$, where $L$ is a multiple of $10^k$ (i.e. the lowest $k$ decimal digits of $L$ are zero):
 
 1. Let
-```math
+
+   ```math
    F = D\!\left(\frac{L}{10^k}\right)
-   
-```
+   ```
+
    be the digit set of the high part that is common to all numbers in the block.
 2. Apply $\operatorname{Lift}(k,F)$. This carries the state from $L$ to $L+10^k-9$.
 3. Naively apply the last nine transitions at
 
-```math
+   ```math
    n = L+10^k-9,\dots,L+10^k-1.
-   
-```
+   ```
 
-Together these cover the whole block $[L,L+10^k)$. To use the approach for general $a$ and $b$, it is better to demonstrate with an example.
+Together these cover the whole block $[L,L+10^k)$. We illustrate how to apply this for general $a$ and $b$ with an example.
 
 ## Example: going from 67 to 2026
 
-Start at $a=67$ with the state $S_{67}$, where only $\mathrm{dp}\[67]=1$. Repeatedly choose the largest power of ten dividing $a$ (with $a=0$ treated as $1$). If it causes us to overshoot $b$, try a smaller power of ten.
+Start at $a=67$ with the state $S_{67}$, where only $\mathrm{dp}[67]=1$. Repeatedly choose the largest power of ten dividing $a$ (if $a=0$, use $10^0=1$); if it causes us to overshoot $b$, try a smaller power of ten. A block of length $1$ is simply a single naive transition.
 
 Grouping consecutive steps by pattern gives:
 
-| stage | range         | decomposition               | high-digit sets |                                                                                                             |
-| ----- | ------------- | --------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------- |
-| A     | $67\to70$     | three unit steps            | —               | naive transitions at $67,68,69$                                                                             |
-| B     | $70\to100$    | three blocks of length $10$ |                 | for $d=7,8,9$: apply $\operatorname{Lift}(1,{d})$, then $9$ naive transitions                               |
-| C     | $100\to1000$  | nine blocks of length $100$ | $\{1\},\dots,\{9\}$ | for $d=1,\dots,9$: apply $\operatorname{Lift}(2,{d})$, then $9$ naive transitions                           |
-| D     | $1000\to2000$ | one block of length $1000$  | $\{1\}$           | apply $\operatorname{Lift}(3,{1})$, then $9$ naive transitions                                              |
-| E     | $2000\to2020$ | two blocks of length $10$   | $\{2,0\},\{2,0,1\}$ | apply $\operatorname{Lift}(1,{2,0})$, then $9$ naive; then $\operatorname{Lift}(1,{2,0,1})$, then $9$ naive |
-| F     | $2020\to2026$ | six unit steps              | —               | naive transitions at $2020,2021,2022,2023,2024,2025$                                                        |
+| stage | range         | decomposition               | high-digit sets     | notes                                                                                                       |
+| ----- | ------------- | --------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| A     | $67\to70$     | three unit steps            | —                   | naive transitions at $67,68,69$                                                                             |
+| B     | $70\to100$    | three blocks of length $10$ | $\{7\},\{8\},\{9\}$ | for $d=7,8,9$: apply $\operatorname{Lift}(1,\{d\})$, then $9$ naive transitions                             |
+| C     | $100\to1000$  | nine blocks of length $100$ | $\{1\},\dots,\{9\}$ | for $d=1,\dots,9$: apply $\operatorname{Lift}(2,\{d\})$, then $9$ naive transitions                         |
+| D     | $1000\to2000$ | one block of length $1000$  | $\{1\}$             | apply $\operatorname{Lift}(3,\{1\})$, then $9$ naive transitions                                            |
+| E     | $2000\to2020$ | two blocks of length $10$   | $\{2,0\},\{2,0,1\}$ | apply $\operatorname{Lift}(1,\{2,0\})$, then $9$ naive; then $\operatorname{Lift}(1,\{2,0,1\})$, then $9$ naive |
+| F     | $2020\to2026$ | six unit steps              | —                   | naive transitions at $2020,2021,2022,2023,2024,2025$                                                        |
 
 At $a=2000$, the largest power of ten dividing $2000$ is $1000$, but $1000 > 2026-2000 = 26$, so it is shrunk to $10$. That is why the block $[2000,2010)$ uses length $10$, not $1000$.
 
@@ -300,4 +303,5 @@ For example:
 [2010,2020):\quad F = D(201)=\{2,0,1\}.
 ```
 
-After the final block $\[2025,2026)$, the maintained state is $S_{2026}$, and its first coordinate is $\mathrm{dp}[2026]$, the answer.
+After the final block $[2025,2026)$, the maintained state is $S_{2026}$, and its first coordinate is $\mathrm{dp}[2026]$, the answer.
+````
