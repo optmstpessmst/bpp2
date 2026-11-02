@@ -1,14 +1,18 @@
 ---
-import { compileTexDocument } from "../lib/latexml";
+import { compileTexDocument, compileTexSource } from "../lib/latexml";
 
 interface Props {
-  file: string;
+  file?: string;
+  raw?: string;
   width?: string;
   height?: string;
 }
 
-const { file, width = "100%", height = "900px" } = Astro.props;
-const documentHtml = await compileTexDocument(file);
+const { file, raw, width = "100%", height = "900px" } = Astro.props;
+if ((file && raw) || (!file && !raw)) {
+  throw new Error("Markdoc tex tag must provide either a file or TeX source.");
+}
+const documentHtml = raw ? await compileTexSource(raw) : await compileTexDocument(file!);
 ---
 <iframe
   data-auto-resize

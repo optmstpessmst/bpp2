@@ -1,11 +1,12 @@
 CMS.registerEditorComponent({
   id: "tex",
-  label: "TeX",
+  label: "TeX attachment",
   fields: [
     {
       label: "TeX attachment",
       name: "file",
       widget: "file",
+      required: true,
       media_folder: "/src/content/editorials/uploads",
       public_folder: "src/content/editorials/uploads",
       choose_url: false,
@@ -32,13 +33,35 @@ CMS.registerEditorComponent({
     };
   },
   toBlock(data) {
-    const attributes = [`file="${data.file || ""}"`];
+    const attributes = [`file="${data.file}"`];
     if (data.width) attributes.push(`width="${data.width}"`);
     if (data.height) attributes.push(`height="${data.height}"`);
     return `{% tex ${attributes.join(" ")} /%}`;
   },
   toPreview(data) {
-    const source = data.file ? `TeX attachment: ${data.file}` : "Choose a TeX attachment";
-    return h("div", { className: "tex-editor-preview" }, source);
+    return h("div", { className: "tex-editor-preview" }, `TeX attachment: ${data.file}`);
+  },
+});
+
+CMS.registerEditorComponent({
+  id: "tex-source",
+  label: "TeX source",
+  fields: [
+    {
+      label: "TeX source",
+      name: "raw",
+      widget: "text",
+      required: true,
+    },
+  ],
+  pattern: /^```tex\n([\s\S]*?)\n```$/m,
+  fromBlock(match) {
+    return { raw: match[1] };
+  },
+  toBlock(data) {
+    return `\`\`\`tex\n${data.raw}\n\`\`\``;
+  },
+  toPreview() {
+    return h("div", { className: "tex-editor-preview" }, "TeX source (preview unavailable)");
   },
 });

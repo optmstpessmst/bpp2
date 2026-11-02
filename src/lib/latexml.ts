@@ -71,6 +71,17 @@ async function compileDocument(source: string): Promise<string> {
   }
 }
 
+export async function compileTexSource(raw: string): Promise<string> {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "bpp2-tex-source-"));
+  const input = path.join(directory, "source.tex");
+  try {
+    await fs.writeFile(input, raw, "utf8");
+    return await compileDocument(input);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+}
+
 export async function compileTexDocument(file: string): Promise<string> {
   if (typeof file !== "string" || path.extname(file).toLowerCase() !== ".tex") {
     throw new Error("Markdoc tex tag must reference a .tex file path.");
