@@ -15,7 +15,7 @@ const iframeFontStyles = `
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="${SITE_FONT_STYLESHEET}" rel="stylesheet">
 <style>
-  html, body { max-width: none !important; } /* remove width limit */
+  html, body { max-width: none !important; padding: 0 !important; } /* remove width limit and padding */
   body { font-family: ${SITE_FONT_FAMILY}; } 
 </style>`;
 
