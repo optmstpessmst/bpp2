@@ -12,5 +12,4 @@ export default defineConfig({
   output: 'static',
   integrations: [react(), markdoc(), latexml(), decapLocal()],
   adapter: cloudflare({ prerenderEnvironment: 'node' }),
-  trailingSlash: 'always',
 });
