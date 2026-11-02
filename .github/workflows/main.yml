@@ -26,7 +26,7 @@ jobs:
       - name: Install LaTeXML
         run: |
           sudo apt-get update
-          sudo apt-get install -y latexml
+          sudo apt-get install -y latexml texlive-pictures
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
