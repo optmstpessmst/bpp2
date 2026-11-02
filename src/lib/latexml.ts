@@ -1,18 +1,14 @@
 import { execFile } from "node:child_process";
-import { createHash, Hash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { run } from "node:test";
+
 
 const execFileAsync = promisify(execFile);
 
 const projectRoot = process.cwd();
 const editorialRoot = path.join(projectRoot, "src", "content", "editorials");
-
-type CacheEntry = { hash: Hash; html: Promise<string> };
-const cache = new Map<string, CacheEntry>();
 
 function within(root: string, target: string): boolean {
   const relative = path.relative(root, target);
@@ -95,15 +91,6 @@ export async function compileTexDocument(file: string): Promise<string> {
   const stat = await fs.stat(source);
   if (!stat.isFile()) throw new Error(`LaTeXML input is not a regular file: ${file}`);
 
-  const hash = createHash(source);
-  const cached = cache.get(source);
-  if (cached?.hash === hash) return cached.html;
-
   const html = compileDocument(source);
-  const entry = { hash, html };
-  cache.set(source, entry);
-  html.catch(() => {
-    if (cache.get(source) === entry) cache.delete(source);
-  });
   return html;
 }
