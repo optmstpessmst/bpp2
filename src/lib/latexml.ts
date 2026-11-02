@@ -9,7 +9,6 @@ import { SITE_FONT_FAMILY, SITE_FONT_STYLESHEET } from "./fonts";
 const execFileAsync = promisify(execFile);
 
 const projectRoot = process.cwd();
-const editorialRoot = path.join(projectRoot, "src", "content", "editorials");
 const iframeFontStyles = `
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,13 +102,12 @@ export async function compileTexDocument(file: string): Promise<string> {
     throw new Error("Markdoc tex tag must reference a .tex file path.");
   }
 
-  const [root, source] = await Promise.all([
-    fs.realpath(editorialRoot),
+  const [source] = await Promise.all([
     fs.realpath(path.resolve(projectRoot, file)),
   ]).catch((error) => {
     throw new Error(`LaTeXML input does not exist or cannot be accessed: ${file}`, { cause: error });
   });
-  if (!within(root, source)) throw new Error(`TeX documents must be inside ${editorialRoot}: ${file}`);
+  if (!within(projectRoot, source)) throw new Error(`TeX documents must be inside ${projectRoot}: ${file}`);
 
   const stat = await fs.stat(source);
   if (!stat.isFile()) throw new Error(`LaTeXML input is not a regular file: ${file}`);
