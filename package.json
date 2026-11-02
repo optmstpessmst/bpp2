@@ -14,10 +14,8 @@
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.3",
     "@astrojs/markdoc": "^2.1.2",
-    "@astrojs/node": "^11.1.9",
     "@astrojs/react": "^7.1.2",
-    "@keystatic/astro": "^6.0.0",
-    "@keystatic/core": "^0.6.9",
+    "@octokit/oauth-app": "^8.0.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "astro": "^7.4.4",

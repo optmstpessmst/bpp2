@@ -44,3 +44,9 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          secrets: |
+            _GITHUB_OAUTH_CLIENT_ID
+            _GITHUB_OAUTH_CLIENT_SECRET
+        env:
+          GITHUB_OAUTH_CLIENT_ID: ${{ secrets._GITHUB_OAUTH_CLIENT_ID }}
+          GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets._GITHUB_OAUTH_CLIENT_SECRET }}
