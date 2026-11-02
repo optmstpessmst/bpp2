@@ -7,8 +7,6 @@ export default defineMarkdocConfig({
       selfClosing: true,
       attributes: {
         file: { type: String },
-        width: { type: String },
-        height: { type: String },
       },
     },
   },
