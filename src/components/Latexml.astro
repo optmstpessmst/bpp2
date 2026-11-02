@@ -11,6 +11,7 @@ const { file, width = "100%", height = "900px" } = Astro.props;
 const documentHtml = await compileTexDocument(file);
 ---
 <iframe
+  data-auto-resize
   srcdoc={documentHtml}
   width={width}
   height={height}
@@ -18,3 +19,6 @@ const documentHtml = await compileTexDocument(file);
   sandbox="allow-same-origin"
   style="border: 0;"
 />
+<script is:inline>
+  import "../scripts/iframe-resizer";
+</script>
