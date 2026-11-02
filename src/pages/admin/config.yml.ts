@@ -1,69 +1,56 @@
 import type { APIRoute } from "astro";
+import { z } from "astro/zod";
+import { stringify } from "yaml";
+import { collectionDefinitions } from "../../lib/content-schema";
+import { decapFields } from "../../lib/decap";
 
 export const prerender = false;
 
-const yamlString = (value: string) => JSON.stringify(value);
+const collections = Object.entries(collectionDefinitions).map(([name, def]) => ({
+  name,
+  label: def.label,
+  folder: def.folder,
+  media_folder: "/" + def.folder + "/uploads",
+  public_folder: def.folder + "/uploads",
+  create: true,
+  extension: "mdoc",
+  format: "frontmatter",
+  identifier_field: "title",
+  slug: "{{slug}}",
+  fields: [
+    ...decapFields(
+      z.toJSONSchema(def.schema, {
+        io: "input",
+        unrepresentable: "any",
+        reused: "inline",
+      })
+    ),
+    { label: def.body, name: "body", widget: "markdown" },
+  ],
+}));
 
 export const GET: APIRoute = ({ request }) => {
-  const origin = new URL(request.url).origin;
-  const host = new URL(request.url).host;
-  const backend = import.meta.env.DEV
-    ? `backend:\n  name: git-gateway\n\nlocal_backend: true`
-    : `backend:\n  name: github\n  repo: optmstpessmst/bpp2\n  branch: main\n  auth_scope: public_repo\n  base_url: ${yamlString(origin)}\n  auth_endpoint: auth\n  site_domain: ${yamlString(host)}\n\npublish_mode: editorial_workflow`;
-  const config = `
-${backend}
+  const { origin, host } = new URL(request.url);
+  const isDev = import.meta.env.DEV;
+  const config = {
+    backend: isDev
+      ? { name: "git-gateway" }
+      : {
+          name: "github",
+          repo: "optmstpessmst/bpp2",
+          branch: "main",
+          auth_scope: "public_repo",
+          base_url: origin,
+          auth_endpoint: "auth",
+          site_domain: host,
+        },
+    ...(isDev ? { local_backend: true } : { publish_mode: "editorial_workflow" }),
+    media_folder: "public/uploads",
+    public_folder: "/uploads",
+    collections,
+  };
 
-media_folder: public/uploads
-public_folder: /uploads
-
-collections:
-  - name: editorials
-    label: Editorials
-    folder: src/content/editorials
-    create: true
-    extension: mdoc
-    format: frontmatter
-    identifier_field: title
-    slug: "{{slug}}"
-    fields:
-      - { label: Problem Title, name: title, widget: string }
-      - { label: Contest / Platform, name: contest, widget: string, required: false }
-      - label: Tags
-        name: tags
-        widget: list
-        required: false
-      - label: Authors
-        name: authors
-        widget: list
-        required: false
-        fields:
-          - { label: Author Name, name: name, widget: string }
-          - { label: Website / Profile URL, name: url, widget: string, required: false }
-      - { label: Editorial Body, name: body, widget: markdown }
-
-  - name: problems
-    label: Problems
-    folder: src/content/problems
-    create: true
-    extension: mdoc
-    format: frontmatter
-    identifier_field: title
-    slug: "{{slug}}"
-    fields:
-      - { label: Problem Title, name: title, widget: string }
-      - { label: Contest / Platform, name: contest, widget: string, required: false }
-      - label: Authors
-        name: authors
-        widget: list
-        required: false
-        fields:
-          - { label: Author Name, name: name, widget: string }
-          - { label: Role, name: role, widget: string, required: false }
-          - { label: Website / Profile URL, name: url, widget: string, required: false }
-      - { label: Problem Statement, name: body, widget: markdown }
-`;
-
-  return new Response(config, {
+  return new Response(stringify(config), {
     headers: {
       "Content-Type": "text/yaml; charset=utf-8",
       "Cache-Control": "no-store",

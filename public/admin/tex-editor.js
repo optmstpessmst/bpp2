@@ -6,8 +6,9 @@ CMS.registerEditorComponent({
       label: "TeX attachment",
       name: "file",
       widget: "file",
-      media_folder: "src/content/editorials",
-      public_folder: "src/content/editorials",
+      media_folder: "/src/content/editorials/uploads",
+      public_folder: "src/content/editorials/uploads",
+      choose_url: false,
     },
     {
       label: "Width",

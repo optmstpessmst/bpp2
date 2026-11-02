@@ -1,38 +1,18 @@
-import { defineCollection, z } from "astro:content";
+import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
+import { collectionDefinitions } from "./lib/content-schema";
+
+const loader = (folder: string) =>
+  glob({ pattern: "**/*.{md,mdoc}", base: `./${folder}` });
 
 const editorials = defineCollection({
-  loader: glob({ pattern: "**/*.{md,mdoc}", base: "./src/content/editorials" }),
-  schema: z.object({
-    title: z.string(),
-    contest: z.string().optional(),
-    tags: z.array(z.string()).default([]),
-    authors: z
-      .array(
-        z.object({
-          name: z.string(),
-          url: z.string().optional(),
-        })
-      )
-      .default([]),
-  }),
+  loader: loader(collectionDefinitions.editorials.folder),
+  schema: collectionDefinitions.editorials.schema,
 });
 
 const problems = defineCollection({
-  loader: glob({ pattern: "**/*.{md,mdoc}", base: "./src/content/problems" }),
-  schema: z.object({
-    title: z.string(),
-    contest: z.string().optional(),
-    authors: z
-      .array(
-        z.object({
-          name: z.string(),
-          role: z.string().optional(),
-          url: z.string().optional(),
-        })
-      )
-      .default([]),
-  }),
+  loader: loader(collectionDefinitions.problems.folder),
+  schema: collectionDefinitions.problems.schema,
 });
 
 export const collections = { editorials, problems };
