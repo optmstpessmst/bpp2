@@ -26,9 +26,7 @@ jobs:
       - name: Install LaTeXML
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            texlive-extra-utils \
-            texlive-pictures
+          sudo apt-get install -y texlive-plain-generic texlive-pictures texlive-extra-utils dvisvgm
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
