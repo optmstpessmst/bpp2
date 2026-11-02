@@ -1,6 +1,6 @@
-import { Markdoc, defineMarkdocConfig } from '@astrojs/markdoc/config';
-import Latexml from './src/components/Latexml.astro';
-import Math from './src/components/Math.astro';
+import { Markdoc, component, defineMarkdocConfig } from '@astrojs/markdoc/config';
+const Latexml = component('./src/components/Latexml.astro');
+const Math = component('./src/components/Math.astro');
 
 export default defineMarkdocConfig({
   tags: {
