@@ -1,0 +1,64 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\setlength{\emergencystretch}{2em}
+\begin{document}
+\begin{center}
+  {\LARGE\bfseries M --- My Problem Was Not Written By AI}\\[0.5em]
+  {\small Graphs, functional graphs, SCC}
+\end{center}
+
+\subsection*{1. Turn the words into edges}
+
+Compress the words into vertices. For each position, if the original
+word is $x$ and Frank's word is $y$, we need an edge $x\to y$.
+
+Every occurrence of the same word changes together. So if one source
+word needs two different successors, the transformation is impossible.
+We output \texttt{You win this time, Frank.}
+
+Ignore self-loops and count repeated edges only once. Every remaining
+edge means a word needs to change, so start with the number of these
+edges as our answer.
+
+\subsection*{2. The only problem is cycles}
+
+For a chain $a\to b\to c$, we can do $b\to c$ first, then $a\to b$.
+So we handle destinations before the words pointing into them.
+Cycles are where this gets stuck. Since each vertex has at most one
+outgoing edge, SCCs with more than one vertex are exactly the cycles.
+
+A cycle with no outside incoming edge needs a temporary word.
+For example, to swap $a$ and $b$, use a fresh word $t$:
+\[
+  a\to t,\qquad b\to a,\qquad t\to b.
+\]
+That is three operations for two edges. In general, this costs one
+extra operation per cycle.
+
+If there is an outside edge $x\to a$, we can use $x$ instead:
+\[
+  b\to x,\qquad a\to b,\qquad x\to a.
+\]
+Both $b$ and $x$ need to become $a$, so merging them is fine.
+Now we handle three edges in three operations, with no extra cost.
+The same idea works for longer cycles.
+
+\subsection*{3. What to count}
+
+For each SCC with more than one vertex, check whether any edge enters
+it from outside. Every cycle vertex already has one incoming edge
+from the cycle itself. So there is no outside edge exactly when
+every vertex in that SCC has indegree $1$.
+
+So the answer is the number of distinct non-self edges, plus one for
+each cycle with no outside incoming edge.
+
+\subsection*{4. Complexity}
+
+After compressing the words, the algorithm takes $O(n)$ time and
+$O(n)$ space.
+
+\end{document}
