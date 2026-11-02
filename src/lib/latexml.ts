@@ -15,17 +15,18 @@ function within(root: string, target: string): boolean {
   return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
 }
 
-async function runMake4ht(sourceFile: string, directory: string): Promise<string> {
+async function runMake4ht(
+  sourceFile: string,
+  directory: string,
+  buildDir: string,
+): Promise<string> {
   const base = path.basename(sourceFile);
   try {
-    await execFileAsync(
-      "make4ht",
-      ["-u", base, "svg,pic-tabular",],
-      {
-        cwd: directory,
-        timeout: 300_000,
-      },
-    );
+    await fs.cp(directory, buildDir, { recursive: true });
+    await execFileAsync("make4ht", ["-u", base, "svg,pic-tabular"], {
+      cwd: buildDir,
+      timeout: 300_000,
+    });
   } catch (error) {
     const failure = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
     const details = [failure.stderr, failure.stdout, failure.message].filter(Boolean).join("\n");
@@ -34,7 +35,7 @@ async function runMake4ht(sourceFile: string, directory: string): Promise<string
       : "";
     throw new Error(`make4ht failed compiling ${sourceFile}.${hint}\n${details}`, { cause: error });
   }
-  return path.join(directory, path.parse(base).name + ".html");
+  return path.join(buildDir, path.parse(base).name + ".html");
 }
 
 
@@ -53,14 +54,19 @@ async function runMonolith(input: string, output: string): Promise<void> {
 }
 
 async function compileDocument(source: string): Promise<string> {
-  // Run make4ht in the directory that contains the source so it can find
-  // any \input, images, and so the output .html lands next to it.
+  // make4ht runs against a throwaway copy of the source directory so the
+  // editorial tree is never written to (and never triggers file watchers).
   const directory = path.dirname(source);
-  const outputHtml = await runMake4ht(source, directory);
-  const bundledOutput = outputHtml.replace(/\.html$/, ".self-contained.html");
+  const buildDir = await fs.mkdtemp(path.join(os.tmpdir(), "bpp2-tex-build-"));
+  try {
+    const outputHtml = await runMake4ht(source, directory, buildDir);
+    const bundledOutput = outputHtml.replace(/\.html$/, ".self-contained.html");
 
-  await runMonolith(outputHtml, bundledOutput);
-  return await fs.readFile(bundledOutput, "utf8");
+    await runMonolith(outputHtml, bundledOutput);
+    return await fs.readFile(bundledOutput, "utf8");
+  } finally {
+    await fs.rm(buildDir, { recursive: true, force: true });
+  }
 }
 
 
