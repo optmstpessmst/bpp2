@@ -45,8 +45,8 @@ export const GET: APIRoute = ({ request }) => {
           site_domain: host,
         },
     ...(isDev ? { local_backend: true } : { publish_mode: "editorial_workflow" }),
-    media_folder: "public/uploads",
-    public_folder: "/uploads",
+    media_folder: "public",
+    public_folder: "/public",
     collections,
   };
 
