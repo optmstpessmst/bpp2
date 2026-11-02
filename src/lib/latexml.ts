@@ -20,7 +20,7 @@ async function runMake4ht(sourceFile: string, directory: string): Promise<string
   try {
     await execFileAsync(
       "make4ht",
-      ["-u", base],
+      ["-u", base, "svg,pic-tabular",],
       {
         cwd: directory,
         timeout: 300_000,
