@@ -1,18 +1,17 @@
 import { execFile } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, Hash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import latexmlCss from "../integrations/latexml.css?raw";
+import { run } from "node:test";
 
 const execFileAsync = promisify(execFile);
 
 const projectRoot = process.cwd();
 const editorialRoot = path.join(projectRoot, "src", "content", "editorials");
-const cssHash = createHash("sha256").update(latexmlCss).digest("hex");
 
-type CacheEntry = { signature: string; html: Promise<string> };
+type CacheEntry = { hash: Hash; html: Promise<string> };
 const cache = new Map<string, CacheEntry>();
 
 function within(root: string, target: string): boolean {
@@ -20,28 +19,28 @@ function within(root: string, target: string): boolean {
   return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
 }
 
-async function runLatexml(source: string, output: string, directory: string): Promise<void> {
+async function runMake4ht(sourceFile: string, directory: string): Promise<string> {
+  const base = path.basename(sourceFile);
   try {
     await execFileAsync(
-      "latexmlc",
-      [
-        "--format=html5",
-        "--timestamp=0",
-        `--dest=${output}`,
-        `--log=${path.join(directory, "latexml.log")}`,
-        `--path=${path.dirname(source)}`,
-        `--css=${path.join(directory, "bpp2-latexml.css")}`,
-        source,
-      ],
-      { cwd: directory, timeout: 120_000, maxBuffer: 32 * 1024 * 1024 },
+      "make4ht",
+      ["-u", base],
+      {
+        cwd: directory,
+        timeout: 300_000,
+      },
     );
   } catch (error) {
     const failure = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
     const details = [failure.stderr, failure.stdout, failure.message].filter(Boolean).join("\n");
-    const hint = failure.code === "ENOENT" ? " Is latexmlc installed and in PATH?" : "";
-    throw new Error(`LaTeXML failed compiling ${source}.${hint}\n${details}`, { cause: error });
+    const hint = failure.code === "ENOENT"
+      ? " Is make4ht installed and in PATH? (It's usually part of TeX Live)"
+      : "";
+    throw new Error(`make4ht failed compiling ${sourceFile}.${hint}\n${details}`, { cause: error });
   }
+  return path.join(directory, path.parse(base).name + ".html");
 }
+
 
 async function runMonolith(input: string, output: string): Promise<void> {
   try {
@@ -58,18 +57,16 @@ async function runMonolith(input: string, output: string): Promise<void> {
 }
 
 async function compileDocument(source: string): Promise<string> {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "bpp2-latexml-"));
-  try {
-    await fs.writeFile(path.join(directory, "bpp2-latexml.css"), latexmlCss);
-    const output = path.join(directory, "index.html");
-    const bundledOutput = path.join(directory, "index.self-contained.html");
-    await runLatexml(source, output, directory);
-    await runMonolith(output, bundledOutput);
-    return await fs.readFile(bundledOutput, "utf8");
-  } finally {
-    await fs.rm(directory, { recursive: true, force: true });
-  }
+  // Run make4ht in the directory that contains the source so it can find
+  // any \input, images, and so the output .html lands next to it.
+  const directory = path.dirname(source);
+  const outputHtml = await runMake4ht(source, directory);
+  const bundledOutput = outputHtml.replace(/\.html$/, ".self-contained.html");
+
+  await runMonolith(outputHtml, bundledOutput);
+  return await fs.readFile(bundledOutput, "utf8");
 }
+
 
 export async function compileTexSource(raw: string): Promise<string> {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "bpp2-tex-source-"));
@@ -98,12 +95,12 @@ export async function compileTexDocument(file: string): Promise<string> {
   const stat = await fs.stat(source);
   if (!stat.isFile()) throw new Error(`LaTeXML input is not a regular file: ${file}`);
 
-  const signature = `${stat.mtimeMs}:${stat.size}:${cssHash}`;
+  const hash = createHash(source);
   const cached = cache.get(source);
-  if (cached?.signature === signature) return cached.html;
+  if (cached?.hash === hash) return cached.html;
 
   const html = compileDocument(source);
-  const entry = { signature, html };
+  const entry = { hash, html };
   cache.set(source, entry);
   html.catch(() => {
     if (cache.get(source) === entry) cache.delete(source);
