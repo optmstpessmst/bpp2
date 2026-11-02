@@ -1,0 +1,204 @@
+---
+title: Jigsaw Jumble
+contest: Algolympics 2026
+tags: []
+authors: []
+---
+We can model the puzzle as an undirected graph, where each vertex represents a puzzle piece and an edge connects two pieces if and only if they fit together.
+
+Our goal is to determine whether this graph is the adjacency graph of some rectangular grid, and construct such a grid if it exists.
+
+A few observations about rectangular grids will be useful:
+- Every vertex has degree at most 4, since each cell has at most four neighbors.
+- If both dimensions are at least 2, there are exactly four corners, each having degree 2.
+- Non-corner boundary cells have degree 3, while interior cells have degree 4.
+
+In particular, any vertex with degree greater than 4 immediately makes the instance impossible.
+
+These observations suggest that instead of constructing the grid from an arbitrary starting piece, we should begin with its boundary. The boundary contains the most structurally distinctive pieces and provides an anchor for placing the remaining pieces.
+
+## General Case
+
+We first handle rectangles whose two dimensions are at least 2.
+
+Since every corner has degree 2, we can start from any degree-2 vertex and place it at the top-left corner of our grid.
+
+We then begin walking along the boundary, initially moving to the right. At each step, we follow an unplaced neighboring piece whose degree is at most 3. Such pieces belong to the boundary of a rectangular grid.
+
+Whenever we encounter another degree-2 vertex, we have reached a corner. We turn to follow the next side of the rectangle.
+
+By continuing this process, we establish the outer structure of the grid. The coordinates visited during this traversal also determine the dimensions of the rectangle.
+
+The important idea is that we use the degree information to distinguish boundary pieces from interior pieces before attempting to place the latter.
+
+Once the boundary provides a reference frame, we can begin filling the remaining cells.
+
+### Expanding Inward
+
+The key observation is that an unplaced piece becomes increasingly constrained as more of its neighbors are placed.
+
+Suppose we want to place a piece (u), and some of its graph neighbors have already been assigned positions.
+
+For every such neighbor (v), piece (u) must occupy a cell adjacent to the position of (v). Furthermore, it must satisfy this condition for **all** of its already-placed neighbors.
+
+Thus, the possible positions of (u) are the empty cells adjacent to every one of its already-placed neighbors.
+
+The central idea is to always prioritize the most constrained pieces, so that we can determine their positions using the placements we already know.
+
+What metric should we use to define how constrained a piece is? To gain additional observations, It helps to visualize the rectangle as a collection of concentric layers, starting from the outer boundary.
+
+For a cell at row (i) and column (j) in an (r \times c) rectangle, define its distance from the boundary as
+
+```math
+d(i,j)=\min(i,j,r-1-i,c-1-j).  
+```
+
+Cells with the same boundary distance form a layer:
+- Layer 0 consists of the outer boundary.
+- Layer 1 consists of the cells immediately inside the boundary.
+- Layer 2 consists of the next inner layer.
+- And so on.
+
+For example, a $5 \times 7$ rectangle has the following layer structure:
+
+```tex
+\documentclass{article}
+\usepackage{xcolor}
+\usepackage{tikz}
+
+% Warm sunset color palette
+\definecolor{layerzero}{HTML}{F9E9D2}
+\definecolor{layerone}{HTML}{E9A66B}
+\definecolor{layertwo}{HTML}{A94F36}
+\definecolor{ink}{HTML}{49352D}
+
+\begin{document}
+
+\begin{tikzpicture}[font=\sffamily\bfseries]
+    \foreach \i in {0,...,4} {
+        \foreach \j in {0,...,6} {
+            \pgfmathtruncatemacro{\d}{min(min(\i,\j),min(4-\i,6-\j))}
+
+            \ifcase\d
+                \def\layerfill{layerzero}
+                \def\layertext{ink}
+            \or
+                \def\layerfill{layerone}
+                \def\layertext{ink}
+            \or
+                \def\layerfill{layertwo}
+                \def\layertext{white}
+            \fi
+
+            \fill[\layerfill] (\j,-\i) rectangle ++(1,1);
+            \draw[white, line width=0.8pt]
+                (\j,-\i) rectangle ++(1,1);
+
+            \node[text=\layertext] at
+                ({\j+0.5},{0.5-\i}) {$\d$};
+        }
+    }
+
+\end{tikzpicture}
+\end{document}
+```
+
+Assume that the previous layers have already been placed, and we want to construct the next one.
+
+We begin with its four corners. Consider the top-left corner of the new layer. It has two neighbors in the previous layer: the cell immediately above it and the cell immediately to its left.
+
+Since both of these neighbors are already placed, they constrain the new piece to occupy a cell adjacent to both.
+
+There are two cells adjacent to both neighbors, but one is already occupied by the previous layer. Therefore, there is exactly one available position.
+
+The same reasoning applies to the other three corners of the new layer.
+
+### Expanding Along the Sides
+
+Once a corner is placed, we can continue along the sides of the new layer.
+
+Consider the cell immediately to the right of the top-left corner. It has two already-placed neighbors:
+- The corresponding cell in the previous layer.
+- The corner of the current layer that we just placed.
+
+These two neighbors again constrain its position to two possible cells. One is already occupied by the previous layer, leaving exactly one available position.
+
+We can repeat this process to fill the entire side.
+
+The same reasoning applies to the other three sides. Consequently, we can expand from the corners along the sides until the entire layer has been placed.
+
+Once this layer is complete, its corners provide the necessary starting points for the next layer, and we repeat the process.
+
+The important invariant is that every piece we place has at least two already-placed neighbors, and their positions, together with the cells already occupied by the previous layer, determine its unique available position.
+### Choosing Which Piece to Place
+
+To follow this expansion order, we prioritize pieces with fewer unplaced neighbors. Equivalently, we prefer pieces with more already-placed neighbors, since these are the most constrained.
+
+Among pieces with the same number of already-placed neighbors, we break ties by preferring those whose placed neighbors are closer to the boundary (belonging to an earlier layer).
+
+This gives us an outside-in reconstruction:
+1. Place the most constrained pieces first.
+2. Prefer pieces connected to the outermost already-placed layer when there are equally constrained choices.
+
+This ordering allows us to reconstruct the grid without making arbitrary placement decisions. The already-placed neighbors constrain the position of each selected piece, while the layer-based tie-breaking keeps the expansion anchored to the outer boundary.
+
+## Handling Narrow Rectangles
+
+The general boundary construction is most convenient when both dimensions are at least 3.
+
+We separately handle rectangles with one or two rows, since their degree patterns are slightly different.
+
+### Two Rows
+
+For a $2 \times c$ rectangle, there are exactly four degree-2 pieces, corresponding to its four corners.
+
+We first check whether the dimensions are possible:
+
+```math
+2c=n
+```
+
+and
+
+```math
+m=2(c-1)+c=3c-2
+```  
+
+If these conditions hold, we try assigning the four degree-2 pieces to the four corners.
+
+There are only $4!$ possible assignments, so we can simply try each one. For each assignment, we initialize the four corner positions and use the same inward expansion process to place the remaining pieces.
+
+We accept an arrangement only if it passes the final verification.
+
+### One Row
+
+For a $1 \times n$ rectangle, the grid is simply a path.
+
+It must have exactly two degree-1 vertices, corresponding to its endpoints, and exactly $m=n-1$ edges.
+
+We try placing the two degree-1 vertices at opposite ends of the row, then use the same expansion procedure to place the remaining pieces.
+
+Since there are only two possible endpoint assignments, this case is also easy to handle.
+
+## Verifying the Arrangement
+
+After expansion finishes, we must verify that the constructed arrangement is actually valid.
+
+It suffices to check the following conditions:
+1. Every piece has been placed.
+2. Every piece occupies a valid and unique position inside the rectangle.
+3. For every pair of pieces, they fit with one another if and only if they occupy adjacent cells.
+
+If an attempted construction fails verification, we discard it and try the next starting configuration. If none of our constructions produces a valid arrangement, we output `NG`.
+
+## Complexity Analysis
+
+Since every piece has at most four neighbors, processing the neighbors of a piece and checking its candidate positions take constant time.
+
+Each placement can update the priorities of at most four neighboring pieces. Consequently, there are $O(n+m)$ priority updates during one expansion.
+
+Using a priority queue, one expansion takes $O((n+m)\log n)$ time.
+
+The general construction is attempted once. For the two-row case, we try at most $4!=24$ corner assignments, and for the one-row case, at most $2!=2$ endpoint assignments.
+
+Since these are constant numbers of attempts, the overall complexity per test case remains $O((n+m)\log n)$.
