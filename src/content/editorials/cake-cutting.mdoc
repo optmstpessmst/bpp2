@@ -1,0 +1,163 @@
+---
+title: Cake Cutting
+contest: Algolympics 2026
+tags: []
+authors: []
+---
+Suppose the cuts divide one dimension into segments of lengths  $a_1,a_2,\ldots$, and the other dimension into segments of lengths $b_1,b_2,\ldots$. Since every segment in one dimension intersects every segment in the other dimension, each resulting piece has area $a_i b_j$.
+
+The cake is fair if the ratio between the largest and smallest piece areas is at most (m).
+
+We can calculate these two extreme areas independently:
+
+```math
+\begin{aligned}  
+\text{Largest area}  
+&=\max_{i,j}(a_i b_j)\  
+&=\left(\max_i a_i\right)\left(\max_j b_j\right),  
+\end{aligned}  
+```
+
+and similarly,
+
+```math
+\begin{aligned}  
+\text{Smallest area}  
+&=\min_{i,j}(a_i b_j)\  
+&=\left(\min_i a_i\right)\left(\min_j b_j\right).  
+\end{aligned}  
+```
+
+Substituting these into the fairness condition gives
+
+```math
+\frac{  
+\left(\max_i a_i\right)\left(\max_j b_j\right)  
+}{  
+\left(\min_i a_i\right)\left(\min_j b_j\right)  
+}  
+\leq m.  
+```
+
+Rearranging, we obtain
+
+```math
+\underbrace{  
+\frac{\max_i a_i}{\min_i a_i}  
+}_{R_a}  
+\cdot  
+\underbrace{  
+\frac{\max_j b_j}{\min_j b_j}  
+}_{R_b}  
+\leq m  
+```
+
+The imbalance of the entire cake is simply the product of the imbalances of its two dimensions. We can process the two dimensions independently and combine their results afterward.
+
+### Handling two different dimensions
+Let's define a function $F_x(\frac{\text{max }p_i}{\text{min }p_i})$, representing the number of ways to partition a dimension of length $x$ such that ```\frac{\text{max }p_i}{\text{min }p_i} = \frac{\text{length of the largest segment of the partition}}{\text{length of the smallest segment of the partition}}```
+
+For now, assume we can somehow calculate this distribution.
+
+From our previous observation, we need to count pairs of partitions whose imbalance ratios satisfy $q_rq_c\leq m$.
+
+Consequently, our answer is
+
+```math
+\sum_{\substack{q_rq_c\leq m}}
+F_r(q_r)F_c(q_c)
+```
+
+Our problem has now been reduced to two tasks:
+1. Calculate the frequency distribution of imbalance ratios for a dimension of length $x$.
+2. Efficiently combine the distributions for lengths $r$ and $c$.
+
+We will first look at the second task. Suppose we have already calculated both distributions and sorted their distinct ratios in increasing order.
+
+For a fixed ratio $q_r$ from the first distribution, we want to count all ratios $q_c$ from the second distribution satisfying
+
+```math
+q_c\leq \frac{m}{q_r}.
+```
+
+Since the second distribution is sorted, all valid ratios form a prefix. We can maintain a pointer indicating the end of this valid prefix, together with the sum of the frequencies inside it.
+
+Now consider iterating through the first distribution in increasing order.
+
+As $q_r$ increases, the threshold $\frac{m}{q_r}$ decreases. Therefore, the valid prefix of the second distribution can only become shorter.
+
+We can maintain a pointer that only moves backwards, removing frequencies from the prefix whenever their ratios are no longer valid
+
+For each ratio $q_r \le m$, we add
+
+```math
+F_r(q_r)
+\cdot
+\sum_{q_c\leq m/q_r}F_c(q_c)
+```
+
+to our answer. Each summation can be evaluated quickly with prefix sums.
+
+## Computing the distribution for each dimension
+Consider a dimension of length $x$. We want to count the ways to divide it into consecutive segments, grouped by the ratio between the largest and smallest segment lengths.
+
+Suppose we fix the minimum and maximum segment lengths to be $L$ and $U$, respectively.
+
+Then, we need to count sequences of positive integers $a_1+a_2+\cdots+a_k=x$ such that:
+- Every $a_i$ lies in $[L,U]$.
+- At least one $a_i=L$.
+- At least one $a_i=U$.
+
+For each pair, the corresponding imbalance ratio is simply $\frac{U}{L}$
+
+We can use a DP with three dimensions:
+
+```math
+dp[s][lo][hi]
+```
+where:
+- $s$ is the current sum of the composition.
+- $lo$ indicates whether we have already used a part equal to $L$.
+- $hi$ indicates whether we have already used a part equal to $U$.
+
+Initially,
+
+```math
+dp[0][0][0]=1,  
+```
+
+since the empty composition has not used either endpoint. All other states are initially zero.
+
+To transition, we append another part (d), where
+
+```math
+L\leq d\leq U.  
+```
+
+The resulting state is
+
+```math
+dp[s+d][lo\lor(d=L)][hi\lor(d=U)]  
+\mathrel{+}=dp[s][lo][hi]   
+```
+
+Our desired answer for the fixed pair $(L,U)$ is $dp[x][1][1]$
+### Optimizing the DP
+
+A straightforward transition would iterate over every possible next part (d) between (L) and (U).
+
+However, notice that choosing an interior value $L<d<U$ does not change either Boolean variable.
+
+Therefore, for a fixed state $(lo,hi)$, all interior choices contribute
+
+```math
+\sum_{d=L+1}^{U-1}dp[s-d][lo][hi].  
+```
+
+We can optimize this using prefix sums $pref[s][lo][ho] = \sum_{t=0}^{s}dp[t][lo][hi]$ over the first dimension of the DP. The two endpoint choices are handled separately. 
+
+Thus, each DP state can be computed in $O(1)$ time.
+
+There are $O(x)$ states and $O(x^2)$ possible pairs, so the overall complexity for computing the one-dimensional distribution is $O(x^3)$.
+
+The merging step can be performed in $O(\text{max}(r, c))$, so the entire problem is solved in $O(\text{max}(r, c)^3)$. 
