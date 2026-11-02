@@ -1,0 +1,238 @@
+---
+title: Flow++
+contest: Algolympics 2026
+tags: []
+authors: []
+---
+Let's first consider a simpler version of the problem where both endpoints of every pair are strictly inside the square.
+
+We claim that we can always connect all pairs by constructing their snakes one at a time.
+
+An existing snake cannot completely separate the square into two disconnected regions because both of its endpoints are strictly inside the square. Even if it blocks a direct route between two points, we can go around one of its endpoints to bypass it.
+
+```tex
+\documentclass{article}
+\usepackage{tikz}
+\begin{document}
+\begin{tikzpicture}[
+    line cap=round,
+    line join=round
+]
+    % Square boundary
+    \draw[thick] (0,0) rectangle (10,10);
+
+    % Blocked direct route
+    \draw[red!70!black, dashed, line width=1.5pt]
+        (1,5) -- (8,5);
+
+    % Existing snake
+    \draw[green!75!black, line width=3pt]
+        (3,1.5) -- (3,7.5);
+
+    % New snake: detour around the existing snake
+    \draw[blue!75!black, line width=3pt]
+        (1,5) -- (1,9) -- (8,9) -- (8,5);
+
+    % Intersection marking
+    \node[red!75!black, font=\Large\bfseries]
+        at (3,5) {$\times$};
+
+    % Existing snake endpoints
+    \fill[green!75!black] (3,1.5) circle (2.5pt);
+    \fill[green!75!black] (3,7.5) circle (2.5pt);
+
+    % New snake endpoints
+    \fill[blue!75!black] (1,5) circle (2.8pt);
+    \fill[blue!75!black] (8,5) circle (2.8pt);
+
+    % Labels
+    \node[blue!75!black, above] at (4.5,9)
+        {\small New snake};
+
+    \node[green!75!black, right] at (3.2,3.5)
+        {\small Existing snake};
+
+    \node[red!75!black, below, fill=white, inner sep=2pt]
+        at (5.5,5)
+        {\small Blocked direct route};
+
+    \node[below left] at (1,5) {$A$};
+    \node[below right] at (8,5) {$B$};
+
+\end{tikzpicture}
+\end{document}
+```
+Therefore, regardless of how many snakes we have already drawn, we can always find a way to connect the next pair without intersecting any existing snakes.
+
+This means we can construct the solution greedily, adding one snake at a time.
+
+However, we still need a way to find these routes. Since we are working with a continuous plane, a snake could theoretically bend at any real-valued coordinate. How can we reduce this to a finite search?
+
+## Working with a discrete set of coordinates
+Instead of considering arbitrary coordinates, let's keep track of two sets:
+- $X$: All x-coordinates containing an input dot or an endpoint of an existing segment.
+- $Y$: All y-coordinates containing an input dot or an endpoint of an existing segment.
+
+Initially, both sets also contain the square's boundary coordinates, $0$ and $s$.
+
+Now comes the main observation:
+
+**We can squeeze a new snake between any two consecutive coordinates.**
+
+For example, suppose our current set of x-coordinates is
+
+```math
+X = {0,2,6,10}.  
+```
+
+We can insert the midpoint between every pair of consecutive coordinates:
+
+```math  
+X' = {0,1,2,4,6,8,10}.  
+```
+
+We do the same for the y-coordinates.
+
+By taking the Cartesian product of these expanded coordinate sets, we obtain a finite grid of candidate positions for our snake.
+
+```tex
+\documentclass{article}
+\usepackage{tikz}
+\begin{document}
+\begin{tikzpicture}
+        % Square
+        \draw[thick] (0,0) rectangle (10,10);
+
+        % Original x-coordinate lines
+        \foreach \x in {1,2,8,9}
+            \draw[gray!40, line width=0.8pt]
+                (\x,0) -- (\x,10);
+
+        % Original y-coordinate lines
+        \foreach \y in {3,5,7}
+            \draw[gray!40, line width=0.8pt]
+                (0,\y) -- (10,\y);
+
+        % Inserted midpoint x-coordinate lines
+        \foreach \x in {0.5,1.5,5,8.5,9.5}
+            \draw[blue!40, dashed, line width=0.9pt]
+                (\x,0) -- (\x,10);
+
+        % Inserted midpoint y-coordinate lines
+        \foreach \y in {1.5,4,6,8.5}
+            \draw[blue!40, dashed, line width=0.9pt]
+                (0,\y) -- (10,\y);
+
+        % Existing snake
+        \draw[green!75!black, line width=2.5pt]
+            (2,3) -- (2,7) -- (8,7);
+
+        % Existing snake endpoints
+        \fill[green!75!black] (2,3) circle (2.5pt);
+        \fill[green!75!black] (8,7) circle (2.5pt);
+
+        % Current pair of dots
+        \fill[blue!75!black] (1,5) circle (3pt);
+        \fill[blue!75!black] (9,5) circle (3pt);
+
+        \node[below left] at (1,5) {$A$};
+        \node[below right] at (9,5) {$B$};
+    % ==========================================
+    % Legend
+    % ==========================================
+    \node[anchor=west, font=\scriptsize]
+        at (3,-2) {Original coordinates};
+    \node[anchor=west, font=\scriptsize]
+        at (8,-2) {Inserted midpoints};
+
+\end{tikzpicture}
+\end{document}
+```
+
+The newly inserted midpoint coordinates create additional lanes between existing coordinate lines. These lanes give us room to maneuver around previously drawn snakes. In this example, you could use the inserted coordinates to either go above or below the previously drawn snake in green.
+## Finding a valid snake
+
+We can now turn the expanded grid into a graph. Each grid intersection represents a vertex, and we can move between adjacent vertices in the four cardinal directions.
+
+Some vertices are forbidden: we cannot visit vertices that coincide with another input dot, lie on an existing segment, or lie on the boundary of the square. The starting and destination points of the current snake are exceptions, since we need to connect them. 
+
+For each vertex, we can detect if it belongs to a line segment by using binary searches on:
+- the set of horizontal line segments with the Y-axis
+- the set of vertical line segments with the same X-axis.
+
+We can therefore search this graph for a valid path from the starting point to the destination. We have to be careful with the length of the path due to the output length limit, however.
+
+To allow for minimizing the number of line segments created, our search state consists of
+```math 
+(\text{current position},\text{incoming direction}).  
+```
+
+When moving to an adjacent vertex, we assign the following costs:
+- Continuing in the same direction has a cost of $0$.
+- Changing direction has a cost of $1$.
+
+Since every transition has a cost of either $0$ or $1$, we can use 0-1 BFS.
+
+We continue exploring until we reach the destination, then reconstruct the path using the search's parent information. Finally, consecutive collinear segments can be merged into a single segment for printing.
+
+The proof that it satisfies the output length limit is currently by AC. 
+
+## Handling boundary points
+So far, we have considered pairs whose endpoints are both strictly inside the square. In fact, the same geometric observation also works when **exactly one endpoint lies on the boundary**: the snake cannot completely separate the square because its other endpoint is still strictly inside.
+
+However, there is one remaining case: what if both endpoints lie on the boundary?
+
+A snake connecting two boundary points can divide the square into two disconnected regions. Consequently, drawing such a snake too early could prevent us from connecting another pair whose endpoints lie on opposite sides.
+
+```tex
+\documentclass{article}
+\usepackage{tikz}
+\begin{document}
+\begin{tikzpicture}[
+    scale=0.65,
+    line cap=round,
+    line join=round
+]
+
+    % Left region
+    \fill[blue!10]
+        (0,0) -- (3,0) -- (3,4)
+        -- (7,4) -- (7,10) -- (0,10) -- cycle;
+
+    % Right region
+    \fill[red!10]
+        (3,0) -- (10,0) -- (10,10)
+        -- (7,10) -- (7,4) -- (3,4) -- cycle;
+
+    % Square boundary
+    \draw[thick] (0,0) rectangle (10,10);
+
+    % Boundary-to-boundary snake
+    \draw[green!75!black, line width=3pt]
+        (3,0) -- (3,4) -- (7,4) -- (7,10);
+
+    % Snake endpoints
+    \fill[green!75!black] (3,0) circle (3pt);
+    \fill[green!75!black] (7,10) circle (3pt);
+
+    % Region labels
+    \node[blue!75!black] at (1.5,5)
+        {\large Region A};
+
+    \node[red!75!black] at (8.5,5)
+        {\large Region B};
+
+    % Snake label
+    \node[fill=white, inner sep=2pt]
+        at (5,3.5) {\small Existing snake};
+
+\end{tikzpicture}
+\end{document}
+```
+To handle this, we divide all pairs into two groups:
+1. **Ordinary pairs:** At least one endpoint is strictly inside the square.    
+2. **Boundary pairs:** Both endpoints lie on the boundary of the square.
+
+We process all ordinary pairs first, followed by all boundary pairs. If a pair cannot be connected without intersecting an existing snake, it can only be caused by a different boundary pair that will always intersect with this pair. The search fails and we output `NO`.
+
+Otherwise, once every pair has been connected, we output `YES` along with the constructed snakes.
