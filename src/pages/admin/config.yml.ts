@@ -7,17 +7,12 @@ const yamlString = (value: string) => JSON.stringify(value);
 export const GET: APIRoute = ({ request }) => {
   const origin = new URL(request.url).origin;
   const host = new URL(request.url).host;
+  const backend = import.meta.env.DEV
+    ? `backend:\n  name: git-gateway\n\nlocal_backend: true`
+    : `backend:\n  name: github\n  repo: optmstpessmst/bpp2\n  branch: main\n  auth_scope: public_repo\n  base_url: ${yamlString(origin)}\n  auth_endpoint: auth\n  site_domain: ${yamlString(host)}\n\npublish_mode: editorial_workflow`;
   const config = `
-backend:
-  name: github
-  repo: optmstpessmst/bpp2
-  branch: main
-  auth_scope: public_repo
-  base_url: ${yamlString(origin)}
-  auth_endpoint: auth
-  site_domain: ${yamlString(host)}
+${backend}
 
-publish_mode: editorial_workflow
 media_folder: public/uploads
 public_folder: /uploads
 
