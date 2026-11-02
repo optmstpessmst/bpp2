@@ -1,25 +1,44 @@
-import { Markdoc, component, defineMarkdocConfig } from '@astrojs/markdoc/config';
+import { Markdoc, defineMarkdocConfig } from '@astrojs/markdoc/config';
+import Latexml from './src/components/Latexml.astro';
+import Math from './src/components/Math.astro';
 
 export default defineMarkdocConfig({
   tags: {
     tex: {
-      render: component('./src/components/Latexml.astro'),
+      render: Latexml,
       selfClosing: true,
       attributes: {
         file: { type: String },
+      },
+    },
+    math: {
+      render: Math,
+      selfClosing: true,
+      attributes: {
+        formula: { type: String },
       },
     },
   },
   nodes: {
     fence: {
       ...Markdoc.nodes.fence,
-      render: component('./src/components/Latexml.astro'),
       transform(node, config) {
         if (node.attributes.language === 'tex') {
-          return new Markdoc.Tag(config.nodes.fence.render, {
-            raw: node.attributes.content,
-          }, []);
+          return new Markdoc.Tag(
+            config.tags.tex.render, 
+            { raw: node.attributes.content }, 
+            []
+          );
+        } 
+        
+        if (node.attributes.language === 'math') {
+          return new Markdoc.Tag(
+            config.tags.math.render, 
+            { raw: node.attributes.content }, 
+            []
+          );
         }
+
         return Markdoc.nodes.fence.transform(node, config);
       },
     },
