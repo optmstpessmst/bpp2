@@ -1,4 +1,9 @@
 import { Markdoc, component, defineMarkdocConfig } from '@astrojs/markdoc/config';
+import { installInlineMathRule, transformInlineMathText } from './src/lib/inline-math-tokenizer.mjs';
+
+installInlineMathRule(Markdoc);
+
+const inlineMathRender = component('./src/components/InlineMath.astro');
 
 export default defineMarkdocConfig({
   tags: {
@@ -11,6 +16,13 @@ export default defineMarkdocConfig({
     },
   },
   nodes: {
+    text: {
+      ...Markdoc.nodes.text,
+      render: inlineMathRender,
+      transform(node, config) {
+        return transformInlineMathText(node.attributes.content, Markdoc.Tag, config.nodes.text.render);
+      },
+    },
     fence: {
       ...Markdoc.nodes.fence,
       render: component('./src/components/MarkdocFence.astro'),
