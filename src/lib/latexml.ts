@@ -3,12 +3,28 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { SITE_FONT_FAMILY, SITE_FONT_STYLESHEET } from "./fonts";
 
 
 const execFileAsync = promisify(execFile);
 
 const projectRoot = process.cwd();
 const editorialRoot = path.join(projectRoot, "src", "content", "editorials");
+const iframeFontStyles = `
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="${SITE_FONT_STYLESHEET}" rel="stylesheet">
+<style>
+  html, body { max-width: none !important; } /* remove width limit */
+  body { font-family: ${SITE_FONT_FAMILY}; } 
+</style>`;
+
+function injectIframeFontStyles(html: string): string {
+  if (/<\/head\s*>/i.test(html)) {
+    return html.replace(/<\/head\s*>/i, `${iframeFontStyles}\n</head>`);
+  }
+  return `${iframeFontStyles}\n${html}`;
+}
 
 function within(root: string, target: string): boolean {
   const relative = path.relative(root, target);
@@ -63,7 +79,8 @@ async function compileDocument(source: string): Promise<string> {
     const bundledOutput = outputHtml.replace(/\.html$/, ".self-contained.html");
 
     await runMonolith(outputHtml, bundledOutput);
-    return await fs.readFile(bundledOutput, "utf8");
+    const html = await fs.readFile(bundledOutput, "utf8");
+    return injectIframeFontStyles(html);
   } finally {
     await fs.rm(buildDir, { recursive: true, force: true });
   }

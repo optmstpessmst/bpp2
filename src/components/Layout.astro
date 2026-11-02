@@ -1,6 +1,7 @@
 ---
 import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
+import { SITE_FONT_FAMILY, SITE_FONT_STYLESHEET } from "../lib/fonts";
 import "katex/dist/katex.min.css";
 
 interface Props {
@@ -17,7 +18,7 @@ const { title } = Astro.props;
     <link rel="icon" type="image/png" href="/bpp2.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link href={SITE_FONT_STYLESHEET} rel="stylesheet">
     <title>{title}</title>
   </head>
   <body>
@@ -28,7 +29,7 @@ const { title } = Astro.props;
     <Footer />
   </body>
 </html>
-<style is:global>
+<style is:global define:vars={{ siteFontFamily: SITE_FONT_FAMILY }}>
   html,
   body {
     height: 100%;
@@ -36,7 +37,7 @@ const { title } = Astro.props;
   }
   body {
     margin: 0;
-    font-family: "Inter", sans-serif;
+    font-family: var(--siteFontFamily);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
