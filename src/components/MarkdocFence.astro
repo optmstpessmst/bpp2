@@ -1,0 +1,12 @@
+---
+import { Code } from 'astro:components';
+import Latexml from './Latexml.astro';
+import Math from './Math.astro';
+
+const { language, content } = Astro.props;
+---
+{language === 'tex' && <Latexml raw={content} />}
+{language === 'math' && <Math raw={content} />}
+{language !== 'tex' && language !== 'math' && (
+  <Code code={content} lang={language} />
+)}
