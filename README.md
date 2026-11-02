@@ -25,7 +25,7 @@ Editorials and problems are written in Markdoc (`.mdoc`). There are four ways to
 
 Wrap inline math in single dollar signs:
 
-```mdoc
+```
 The input consists of $n$ integers.
 ```
 
@@ -33,7 +33,7 @@ The input consists of $n$ integers.
 
 To display math blocks, use a code fence with the language `math`.
 
-````mdoc
+````
 ```math
 \begin{matrix}
 1 & 0 & 0 \\
@@ -49,7 +49,7 @@ Display math is rendered at build time.
 
 Use a code fence with the language `tex` to compile LaTeX directly in the document. The fence must contain a complete LaTeX document, including `\documentclass` and `\begin{document}`.
 
-````mdoc
+````
 ```tex
 \documentclass[11pt,a4paper]{article}
 \usepackage[margin=25mm]{geometry}
@@ -68,7 +68,7 @@ Local development requires `make4ht` and `monolith` to be installed and availabl
 
 For longer documents, keep the LaTeX in a `.tex` file and reference it with the `tex` tag:
 
-```mdoc
+```
 {% tex file="src/content/editorials/uploads/editorial.tex" /%}
 ```
 
@@ -78,7 +78,7 @@ Only the `file` attribute is available on the tag. To provide TeX inline, use a 
 
 Any other fence language is rendered as a normal syntax-highlighted code block:
 
-````mdoc
+````
 ```cpp
 int main() {
   return 0;
