@@ -93,7 +93,7 @@ int main() {
 
 ## Additional Dependencies
 
-TeX rendering requires `make4ht` and `monolith`. To replicate the configuation used in production, install with:
+TeX rendering requires `make4ht` and `monolith`. To replicate the configuation used in production, run the following in an Ubuntu 24.04 install:
 
 ```
 sudo apt-get install -y texlive-plain-generic texlive-pictures texlive-extra-utils dvisvgm
