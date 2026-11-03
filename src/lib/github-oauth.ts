@@ -1,6 +1,5 @@
 import { OAuthApp } from "@octokit/oauth-app";
 import { env } from "cloudflare:workers";
-import serialize from "serialize-javascript";
 import { z } from "astro/zod";
 
 const oauthEnvSchema = z.object({
@@ -29,9 +28,10 @@ export function getCallbackUrl(request: Request): string {
 }
 
 export function popupResponse(message: string, status = 200): Response {
+  const serializedMessage = JSON.stringify(message).replace(/</g, "\\u003c");
   const html = `<!doctype html>
 <html><body><script>
-  const message = ${serialize(message)};
+  const message = ${serializedMessage};
   const provider = "github";
 
   function onMessage(event) {
