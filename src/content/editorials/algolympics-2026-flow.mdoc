@@ -238,3 +238,279 @@ To handle this, we divide all pairs into two groups:
 We process all ordinary pairs first, followed by all boundary pairs. If a pair cannot be connected without intersecting an existing snake, it can only be caused by a different boundary pair that will always intersect with this pair. The search fails and we output `NO`.
 
 Otherwise, once every pair has been connected, we output `YES` along with the constructed snakes.
+
+<details>
+    <summary>C++ code</summary>
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+struct point {
+    double x, y;
+
+    bool operator==(const point &other) const {
+        return x == other.x && y == other.y;
+    }
+};
+
+vector<point> compress(vector<point> pts) {
+    vector<point> merged;
+    for (auto [x, y] : pts) {
+        if (merged.size() >= 2) {
+            size_t prev_idx = merged.size() - 2;
+            size_t last_idx = merged.size() - 1;
+            if (merged[prev_idx].x == merged[last_idx].x && merged[last_idx].x == x) {
+                merged[last_idx].y = y;
+                continue;
+            }
+            if (merged[prev_idx].y == merged[last_idx].y && merged[last_idx].y == y) {
+                merged[last_idx].x = x;
+                continue;
+            }
+        }
+        merged.push_back({x, y});
+    }
+    return merged;
+}
+
+struct pointhash {
+    static size_t combine(size_t h, size_t v) {
+        return h ^ (v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2));
+    }
+
+    size_t operator()(const point &p) const {
+        size_t h = 0;
+        h = combine(h, std::hash<double>{}(p.x));
+        h = combine(h, std::hash<double>{}(p.y));
+        return h;
+    }
+
+    size_t operator()(const pair<point, pair<int, int>> &s) const {
+        size_t h = 0;
+        h = combine(h, std::hash<double>{}(s.first.x));
+        h = combine(h, std::hash<double>{}(s.first.y));
+        h = combine(h, std::hash<int>{}(s.second.first));
+        h = combine(h, std::hash<int>{}(s.second.second));
+        return h;
+    }
+};
+
+bool on_boundary(const point &p, int side) {
+    return p.x == 0 || p.x == side || p.y == 0 || p.y == side;
+}
+
+struct LineSegments {
+    unordered_map<double, set<pair<double, double>>> horizontal_segments;
+    unordered_map<double, set<pair<double, double>>> vertical_segments;
+    set<double> x_coords, y_coords;
+
+    bool on_horizontal_segment(const point &p) {
+        auto &segs = horizontal_segments[p.y];
+        auto it = segs.upper_bound({p.x, numeric_limits<double>::max()});
+        return it != segs.begin()
+            && prev(it)->first <= p.x && p.x <= prev(it)->second;
+    }
+
+    bool on_vertical_segment(const point &p) {
+        auto &segs = vertical_segments[p.x];
+        auto it = segs.upper_bound({p.y, numeric_limits<double>::max()});
+        return it != segs.begin()
+            && prev(it)->first <= p.y && p.y <= prev(it)->second;
+    }
+
+    void register_coord(const point &p) {
+        x_coords.insert(p.x);
+        y_coords.insert(p.y);
+    }
+
+    void add_horizontal_segment(const point &a, const point &b) {
+        assert(a.y == b.y);
+        x_coords.insert(a.x);
+        x_coords.insert(b.x);
+        y_coords.insert(a.y);
+        horizontal_segments[a.y].emplace(min(a.x, b.x), max(a.x, b.x));
+    }
+
+    void add_vertical_segment(const point &a, const point &b) {
+        assert(a.x == b.x);
+        x_coords.insert(a.x);
+        y_coords.insert(a.y);
+        y_coords.insert(b.y);
+        vertical_segments[a.x].emplace(min(a.y, b.y), max(a.y, b.y));
+    }
+
+    vector<double> grid_coords(const set<double> &coord_set) const {
+        double prv = -1;
+        vector<double> grid;
+        for (auto coord : coord_set) {
+            if (prv >= 0) {
+                grid.push_back((coord + prv) / 2);
+                assert(grid.back() != prv && grid.back() != coord);
+            }
+            grid.push_back(coord);
+            prv = coord;
+        }
+        return grid;
+    }
+
+    vector<double> grid_x_coords() const { return grid_coords(x_coords); }
+    vector<double> grid_y_coords() const { return grid_coords(y_coords); }
+};
+
+void solve_case() {
+    int n, s;
+    cin >> n >> s;
+
+    LineSegments board;
+    unordered_set<point, pointhash> dots;
+
+    board.x_coords.insert(0);
+    board.x_coords.insert(s);
+    board.y_coords.insert(0);
+    board.y_coords.insert(s);
+
+    vector<pair<pair<point, point>, int>> ordinary_pairs, boundary_pairs;
+    for (int i = 0; i < n; i++) {
+        point start, end;
+        cin >> start.x >> start.y >> end.x >> end.y;
+
+        dots.insert(start);
+        dots.insert(end);
+        board.register_coord(start);
+        board.register_coord(end);
+        if (on_boundary(start, s) && on_boundary(end, s)) {
+            boundary_pairs.emplace_back(make_pair(start, end), i);
+        } else {
+            ordinary_pairs.emplace_back(make_pair(start, end), i);
+        }
+    }
+
+    auto connect = [&](pair<point, point> endpoints) -> optional<vector<point>> {
+        auto xs = board.grid_x_coords();
+        auto ys = board.grid_y_coords();
+
+        unordered_set<point, pointhash> occupied;
+        for (int j = (int)ys.size() - 1; j >= 0; j--) {
+            for (int i = 0; i < (int)xs.size(); i++) {
+                point pt = {xs[i], ys[j]};
+                if (dots.contains(pt)
+                 || board.on_horizontal_segment(pt)
+                 || board.on_vertical_segment(pt)) {
+                    occupied.insert(pt);
+                }
+            }
+        }
+
+        auto valid = [&](const point &dest) -> bool {
+            if (dest == endpoints.second) return true;
+            if (on_boundary(dest, s) || occupied.contains(dest)) return false;
+            return true;
+        };
+
+        // 0-1 BFS: straight costs 0, turn costs 1.
+        unordered_map<pair<point, pair<int, int>>, int, pointhash> dist;
+        unordered_map<
+            pair<point, pair<int, int>>,
+            pair<point, pair<int, int>>,
+            pointhash> parent;
+        deque<pair<point, pair<int, int>>> frontier;
+
+        frontier.emplace_front(endpoints.first, make_pair(0, 0));
+        dist[frontier.front()] = 0;
+
+        while (!frontier.empty()) {
+            auto state = frontier.front();
+            frontier.pop_front();
+            auto [cur, incoming] = state;
+
+            if (cur == endpoints.second) {
+                vector<point> path;
+                point walk = cur;
+                auto walk_dir = incoming;
+                while (true) {
+                    path.push_back(walk);
+                    if (walk == endpoints.first) break;
+                    auto prev_state = parent[{walk, walk_dir}];
+                    walk = prev_state.first;
+                    walk_dir = prev_state.second;
+                }
+                path = compress(path);
+                for (size_t i = 0; i + 1 < path.size(); i++) {
+                    if (path[i].x == path[i + 1].x) {
+                        board.add_vertical_segment(path[i], path[i + 1]);
+                    } else {
+                        board.add_horizontal_segment(path[i], path[i + 1]);
+                    }
+                }
+                return path;
+            }
+
+            int x_idx = (int)(lower_bound(xs.begin(), xs.end(), cur.x) - xs.begin());
+            int y_idx = (int)(lower_bound(ys.begin(), ys.end(), cur.y) - ys.begin());
+
+            for (auto dir : {make_pair(-1, 0), make_pair(1, 0),
+                             make_pair(0, -1), make_pair(0, 1)}) {
+                int nx_idx = x_idx + dir.first;
+                int ny_idx = y_idx + dir.second;
+                if (nx_idx < 0 || nx_idx >= (int)xs.size()) continue;
+                if (ny_idx < 0 || ny_idx >= (int)ys.size()) continue;
+
+                point next_point = {xs[nx_idx], ys[ny_idx]};
+                pair<point, pair<int, int>> next_state = {next_point, dir};
+
+                if (!valid(next_point) || (dist.contains(next_state) && dist[next_state] <= dist[state] + (incoming != dir ? 1 : 0))) continue;
+
+                dist[next_state] = dist[state] + (incoming != dir ? 1 : 0);
+                parent[next_state] = state;
+                if (incoming == dir) {
+                    frontier.emplace_front(next_point, dir);
+                } else {
+                    frontier.emplace_back(next_point, dir);
+                }
+            }
+        }
+
+        return nullopt;
+    };
+
+    vector<vector<point>> paths(n);
+
+    // Ordinary pairs first; boundary pairs last.
+    for (auto &[endpoints, index] : ordinary_pairs) {
+        auto path = connect(endpoints);
+        if (!path) { cout << "NO\n"; return; }
+        paths[index] = *path;
+    }
+    for (auto &[endpoints, index] : boundary_pairs) {
+        auto path = connect(endpoints);
+        if (!path) { cout << "NO\n"; return; }
+        paths[index] = *path;
+    }
+
+    cout << "YES\n";
+    for (int i = 0; i < n; i++) {
+        cout << ((int)paths[i].size() - 1) << ' ';
+        // paths[i] is stored end -> start.
+        for (int j = (int)paths[i].size() - 1; j >= 0; j--) {
+            cout << paths[i][j].x << ' ' << paths[i][j].y;
+            if (j > 0) cout << ' ';
+        }
+        cout << '\n';
+    }
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    cout << setprecision(6) << fixed;
+
+    int t = 1;
+    cin >> t;
+    while (t--) solve_case();
+}
+
+```
+
+</details>

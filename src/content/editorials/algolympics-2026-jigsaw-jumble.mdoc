@@ -202,3 +202,325 @@ Using a priority queue, one expansion takes $O((n+m)\log n)$ time.
 The general construction is attempted once. For the two-row case, we try at most $4!=24$ corner assignments, and for the one-row case, at most $2!=2$ endpoint assignments.
 
 Since these are constant numbers of attempts, the overall complexity per test case remains $O((n+m)\log n)$.
+
+<details>
+    <summary>C++ code</summary>
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+struct State {
+    int priority;   // fewer unvisited neighbours is better
+    int boundary;   // closer to boundary is better
+    int vertex;     // puzzle piece
+
+    bool operator>(const State& other) const {
+        if (priority != other.priority) return priority > other.priority;
+        return boundary > other.boundary;
+    }
+
+    bool operator==(const State& other) const {
+        return priority == other.priority &&
+               boundary == other.boundary &&
+               vertex   == other.vertex;
+    }
+};
+
+struct StatePQ {
+    unordered_map<int, State> cur;
+    priority_queue<State, vector<State>, greater<State>> pq;
+
+    void set(int u, State val) {
+        cur[u] = val;
+        pq.push(val);
+    }
+
+    optional<State> top() {
+        while (!pq.empty()) {
+            auto it = cur.find(pq.top().vertex);
+            if (it != cur.end() && it->second == pq.top()) return pq.top();
+            pq.pop();
+        }
+        return nullopt;
+    }
+
+    void pop() {
+        auto it = top();
+        if (!it) return;
+        cur.erase(it->vertex);
+        pq.pop();
+    }
+};
+
+
+void solve() {
+    int n, m;
+    cin >> n >> m;
+
+    vector<vector<int>> adj(n + 1);
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    if (n == 1) {
+        cout << "OK\n1 1\n1\n";
+        return;
+    }
+
+    for (int u = 1; u <= n; u++) {
+        if ((int)adj[u].size() > 4) {
+            cout << "NG\n";
+            return;
+        }
+    }
+
+    auto print_grid = [&](const unordered_map<int, unordered_map<int, int>>& grid) {
+        if (grid.empty()) return;
+
+        int h = grid.size();
+        int w = grid.begin()->second.size();
+        cout << h << " " << w << '\n';
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                cout << grid.at(i).at(j);
+                if (j != w - 1) cout << " ";
+            }
+            cout << '\n';
+        }
+    };
+
+    auto expand = [&](unordered_map<int, unordered_map<int, int>>& grid,
+                    vector<bool>& placed,
+                    vector<int>& row,
+                    vector<int>& col,
+                    int row_bound,
+                    int col_bound) {
+        StatePQ pq;
+
+        auto get_state = [&](int u) -> State {
+            if (placed[u]) return {INT_MAX, INT_MAX, u};
+            int unvisited = (int)adj[u].size();
+            int min_boundary = INT_MAX;
+            for (int v : adj[u]) {
+                if (placed[v]) {
+                    unvisited--;
+                    int h = (int)grid.size();
+                    int w = (int)grid.begin()->second.size();
+                    min_boundary = min({min_boundary,
+                                        w - 1 - col[v], col[v],
+                                        h - 1 - row[v], row[v]});
+                }
+            }
+            return {unvisited, min_boundary, u};
+        };
+
+        for (int u = 1; u <= n; u++)
+            if (!placed[u]) pq.set(u, get_state(u));
+
+        while (true) {
+            auto it = pq.top();
+            if (!it) break;
+            int u = it->vertex;
+            pq.pop();
+
+            unordered_set<int> cand_r, cand_c;
+            for (int v : adj[u]) {
+                if (!placed[v]) continue;
+
+                for (int dr : {-1, 0, +1}) 
+                    if (0 <= row[v] + dr && row[v] + dr < row_bound) cand_r.insert(row[v] + dr);
+                
+                for (int dc : {-1, 0, +1}) 
+                    if (0 <= col[v] + dc && col[v] + dc < col_bound) cand_c.insert(col[v] + dc);
+            }
+
+            for (int r : cand_r) {
+                for (int c : cand_c) {
+                    if (grid[r][c] != 0) continue;
+
+                    bool has_adjacent = false, valid = true;
+                    for (int v : adj[u]) {
+                        if (!placed[v]) continue;
+                        has_adjacent = true;
+                        if (abs(r - row[v]) + abs(c - col[v]) != 1) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    if (valid && has_adjacent) {
+                        grid[r][c] = u;
+                        row[u] = r;
+                        col[u] = c;
+                        placed[u] = true;
+                        for (int v : adj[u])
+                            if (!placed[v]) pq.set(v, get_state(v));
+                        goto found;
+                    }
+                }
+            }
+found:
+            (void)0;
+        }
+    };
+
+    auto verify = [&](unordered_map<int, unordered_map<int, int>>& grid,
+                      vector<bool>& placed,
+                      vector<int>& row,
+                      vector<int>& col) {
+        bool ok = true;
+        int edge_count = 0;
+
+        int h = (int)grid.size();
+        int w = grid.empty() ? 0 : (int)grid.begin()->second.size();
+
+        for (int u = 1; u <= n; u++) {
+            if (!placed[u]) ok = false;
+            ok &= 0 <= row[u] && row[u] < h;
+            ok &= 0 <= col[u] && col[u] < w;
+            for (int v : adj[u]) {
+                if (abs(row[u] - row[v]) + abs(col[u] - col[v]) != 1) {
+                    ok = false;
+                    break;
+                }
+                edge_count++;
+            }
+        }
+
+        ok &= edge_count == 2 * (h * (w - 1) + w * (h - 1));
+        ok &= h * w == n;
+        return ok;
+    };
+
+    auto try_general = [&]() -> unordered_map<int, unordered_map<int, int>> {
+        unordered_map<int, unordered_map<int, int>> grid;
+        vector<int> row(n + 1), col(n + 1);
+        vector<bool> placed(n + 1);
+
+        int start = -1;
+        for (int u = 1; u <= n; u++) {
+            if (adj[u].size() == 2) { start = u; break; }
+        }
+
+        if (start != -1) {
+            int u = start;
+            int r = 0, c = 0, dr = 0, dc = 1;
+            int rows = 0, cols = 0;
+            grid[r][c] = u;
+            row[u] = r;
+            col[u] = c;
+
+            while (true) {
+                placed[u] = true;
+                int next = -1;
+                for (int v : adj[u]) {
+                    if (!placed[v] && adj[v].size() <= 3) { next = v; break; }
+                }
+                if (next == -1) break;
+
+                r += dr; c += dc;
+                rows = max(rows, r + 1);
+                cols = max(cols, c + 1);
+                grid[r][c] = next;
+                row[next] = r;
+                col[next] = c;
+                u = next;
+
+                if (adj[next].size() == 2) {
+                    if (dr == 0 && dc == 1) { dr = 1; dc = 0; }
+                    else if (dr == 1 && dc == 0) { dr = 0; dc = -1; }
+                    else if (dr == 0 && dc == -1) { dr = -1; dc = 0; }
+                    else break;
+                }
+            }
+
+            expand(grid, placed, row, col, rows, cols);
+            if (verify(grid, placed, row, col)) return grid;
+        }
+    
+        return {};
+    };
+
+    auto try_k = [&](int rows) -> unordered_map<int, unordered_map<int, int>> {
+        vector<int> candidates;
+        for (int u = 1; u <= n; u++) {
+            if ((int)adj[u].size() == rows) candidates.push_back(u);
+        }
+        if ((int)candidates.size() != rows * 2) return {};
+
+        int r = rows, c = n / rows;
+        if (c < 2 || r * c != n) return {};
+        if (m != r * (c - 1) + c * (r - 1)) return {};
+
+        do {
+            unordered_map<int, unordered_map<int, int>> grid;
+            vector<int> row(n + 1), col(n + 1);
+            vector<bool> placed(n + 1);
+
+            grid[0][0] = candidates[0];
+            row[candidates[0]] = 0;
+            col[candidates[0]] = 0;
+
+            grid[0][c - 1] = candidates[1];
+            row[candidates[1]] = 0;
+            col[candidates[1]] = c - 1;
+
+            placed[candidates[0]] = placed[candidates[1]] = 1;
+
+            if (rows > 1) {
+                grid[1][0] = candidates[2];
+                row[candidates[2]] = 1;
+                col[candidates[2]] = 0;
+
+                grid[1][c - 1] = candidates[3];
+                row[candidates[3]] = 1;
+                col[candidates[3]] = c - 1;
+
+                placed[candidates[2]] = placed[candidates[3]] = 1;
+            }
+
+            expand(grid, placed, row, col, rows, c);
+            if (verify(grid, placed, row, col)) return grid;
+        } while (next_permutation(candidates.begin(), candidates.end()));
+
+        return {};
+    };
+
+    auto result = try_general();
+    if (!result.empty()) {
+        cout << "OK\n";
+        print_grid(result);
+        return;
+    }
+
+    result = try_k(2);
+    if (!result.empty()) {
+        cout << "OK\n";
+        print_grid(result);
+        return;
+    }
+
+    result = try_k(1);
+    if (!result.empty()) {
+        cout << "OK\n";
+        print_grid(result);
+        return;
+    }
+
+    cout << "NG\n";
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int t = 1;
+    cin >> t;
+    while (t--) solve();
+}
+```
+
+</details>

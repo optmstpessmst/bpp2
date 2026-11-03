@@ -304,4 +304,238 @@ For example:
 ```
 
 After the final block $[2025,2026)$, the maintained state is $S_{2026}$, and its first coordinate is $\mathrm{dp}[2026]$, the answer.
-````
+
+<details>
+    <summary>C++ code</summary>
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+template <int MOD>
+struct Fp {
+    int64_t val = 0;
+
+    constexpr Fp(int64_t v = 0) noexcept : val(v % MOD) {
+        if (val < 0) val += MOD;
+    }
+
+    constexpr Fp operator-() const noexcept {
+        return val ? MOD - val : 0;
+    }
+
+    constexpr Fp operator+(const Fp& r) const noexcept { return Fp(*this) += r; }
+    constexpr Fp operator-(const Fp& r) const noexcept { return Fp(*this) -= r; }
+    constexpr Fp operator*(const Fp& r) const noexcept { return Fp(*this) *= r; }
+    constexpr Fp operator/(const Fp& r) const noexcept { return Fp(*this) /= r; }
+
+    constexpr Fp& operator+=(const Fp& r) noexcept {
+        val += r.val;
+        if (val >= MOD) val -= MOD;
+        return *this;
+    }
+
+    constexpr Fp& operator-=(const Fp& r) noexcept {
+        val -= r.val;
+        if (val < 0) val += MOD;
+        return *this;
+    }
+
+    constexpr Fp& operator*=(const Fp& r) noexcept {
+        val = val * r.val % MOD;
+        return *this;
+    }
+
+    constexpr Fp& operator/=(const Fp& r) noexcept {
+        int64_t a = r.val, b = MOD, u = 1, v = 0;
+        while (b) {
+            int64_t t = a / b;
+            a -= t * b;
+            swap(a, b);
+            u -= t * v;
+            swap(u, v);
+        }
+        val = val * u % MOD;
+        if (val < 0) val += MOD;
+        return *this;
+    }
+
+    constexpr bool operator==(const Fp& r) const noexcept {
+        return val == r.val;
+    }
+
+    constexpr bool operator!=(const Fp& r) const noexcept {
+        return val != r.val;
+    }
+
+    friend constexpr ostream& operator<<(ostream& os, const Fp<MOD>& x) noexcept {
+        return os << x.val;
+    }
+};
+
+const int MOD = 998244353;
+using mint = Fp<MOD>;
+
+long long place_value_first_non0(long long n) {
+    if (n == 0) return 1;
+
+    long long ret = 1;
+    while (n % 10 == 0) {
+        n /= 10;
+        ret *= 10;
+    }
+    return ret;
+}
+
+long long n_to_mask(long long n) {
+    long long ret = 0;
+    while (n > 0) {
+        int d = n % 10;
+        ret |= 1LL << d;
+        n /= 10;
+    }
+    return ret;
+}
+
+using state = array<mint, 9>;
+using matrix = array<array<mint, 9>, 9>;
+
+matrix identity() {
+    matrix ret = {};
+    for (int i = 0; i < 9; i++) {
+        ret[i][i] = 1;
+    }
+    return ret;
+}
+
+state matmul(const matrix& m, state s) {
+    state ret = {};
+
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            ret[i] += m[i][j] * s[j];
+        }
+    }
+
+    return ret;
+}
+
+matrix matmul(const matrix& a, const matrix& b) {
+    matrix ret = {};
+
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            for (int k = 0; k < 9; k++) {
+                ret[i][j] += a[i][k] * b[k][j];
+            }
+        }
+    }
+
+    return ret;
+}
+
+matrix gen(long long base, long long force_allow_digits = 0) {
+    matrix ret = {};
+
+    for (int i = 0; i < 8; i++) {
+        ret[i][i + 1] = 1;
+    }
+
+    long long digits_allowed = force_allow_digits;
+    {
+        digits_allowed |= n_to_mask(base);
+
+        for (int d = 1; d < 10; d++) {
+            if (n_to_mask(base + d) & (1LL << d)) {
+                digits_allowed |= 1LL << d;
+            }
+        }
+    }
+
+    for (int d = 1; d < 10; d++) {
+        if ((1LL << d) & digits_allowed) {
+            ret[d - 1][0] += 1;
+        }
+    }
+
+    return ret;
+}
+
+array<unordered_map<long long, matrix>, (1 << 10)> cache;
+
+matrix get_full(long long width, long long force_allow_digits = 0) {
+    assert(width >= 10);
+
+    if (cache[force_allow_digits].contains(width)) {
+        return cache[force_allow_digits][width];
+    }
+
+    if (width == 10) {
+        return cache[force_allow_digits][width] = gen(0, force_allow_digits);
+    }
+
+    auto ret = identity();
+
+    for (int i = 0; i <= 9; i++) {
+        ret = matmul(get_full(width / 10, force_allow_digits | (1LL << i)), ret);
+
+        if (i <= 8) {
+            for (int j = 9; j >= 1; j--) {
+                ret = matmul(gen(width / 10 * (i + 1) - j, force_allow_digits), ret);
+            }
+        }
+    }
+
+    cache[force_allow_digits][width] = ret;
+    return ret;
+}
+
+matrix get(long long width, long long l) {
+    if (width == 1) {
+        return gen(l);
+    }
+
+    auto ret = get_full(width, n_to_mask(l));
+
+    for (int j = 9; j >= 1; j--) {
+        ret = matmul(gen(l + width - j), ret);
+    }
+
+    return ret;
+}
+
+state transform(long long width, long long l, state cur) {
+    auto m = get(width, l);
+    return matmul(m, cur);
+}
+
+void solve() {
+    long long a, b;
+    cin >> a >> b;
+
+    state dp = {};
+    dp[0] = 1;
+
+    while (b - a > 0) {
+        long long pv = place_value_first_non0(a);
+        while (pv > b - a) {
+            pv /= 10;
+        }
+
+        dp = transform(pv, a, dp);
+        a += pv;
+    }
+
+    cout << dp[0] << '\n';
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int t = 1;
+    while (t--) solve();
+}
+```
+
+</details>
