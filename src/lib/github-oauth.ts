@@ -1,11 +1,20 @@
 import { OAuthApp } from "@octokit/oauth-app";
 import { env } from "cloudflare:workers";
+import serialize from "serialize-javascript";
+import { z } from "astro/zod";
+
+const oauthEnvSchema = z.object({
+  GITHUB_OAUTH_CLIENT_ID: z.string().min(1),
+  GITHUB_OAUTH_CLIENT_SECRET: z.string().min(1),
+});
 
 export function createGitHubOAuthApp() {
-  const { GITHUB_OAUTH_CLIENT_ID: clientId, GITHUB_OAUTH_CLIENT_SECRET: clientSecret } = env;
-  if (!clientId || !clientSecret) {
-    throw new Error("GitHub OAuth is not configured on this deployment.");
+  const parsed = oauthEnvSchema.safeParse(env);
+  if (!parsed.success) {
+    throw new Error("GitHub OAuth is not configured on this deployment.", { cause: parsed.error });
   }
+
+  const { GITHUB_OAUTH_CLIENT_ID: clientId, GITHUB_OAUTH_CLIENT_SECRET: clientSecret } = parsed.data;
 
   return new OAuthApp({
     clientType: "oauth-app",
@@ -20,10 +29,9 @@ export function getCallbackUrl(request: Request): string {
 }
 
 export function popupResponse(message: string, status = 200): Response {
-  const serializedMessage = JSON.stringify(message).replace(/</g, "\\u003c");
   const html = `<!doctype html>
 <html><body><script>
-  const message = ${serializedMessage};
+  const message = ${serialize(message)};
   const provider = "github";
 
   function onMessage(event) {
@@ -57,21 +65,3 @@ export function oauthErrorResponse(message: string, status = 400): Response {
   );
 }
 
-export function readCookie(request: Request, name: string): string | undefined {
-  const cookieHeader = request.headers.get("Cookie") ?? "";
-  for (const part of cookieHeader.split(";")) {
-    const separator = part.indexOf("=");
-    if (separator < 0) continue;
-    if (part.slice(0, separator).trim() === name) {
-      return decodeURIComponent(part.slice(separator + 1).trim());
-    }
-  }
-  return undefined;
-}
-
-export function stateCookie(state: string, request: Request, clear = false): string {
-  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  const value = clear ? "" : encodeURIComponent(state);
-  const maxAge = clear ? 0 : 600;
-  return `decap_oauth_state=${value}; Path=/callback; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
-}
