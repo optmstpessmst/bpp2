@@ -7,8 +7,6 @@ CMS.registerEditorComponent({
       name: "file",
       widget: "file",
       required: true,
-      media_folder: "/src/content/editorials/uploads",
-      public_folder: "src/content/editorials/uploads",
       choose_url: false,
     }
   ],
