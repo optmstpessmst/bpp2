@@ -11,6 +11,6 @@ import { inlineTexExtension } from './src/lib/inline-math-tokenizer.mjs';
 
 export default defineConfig({
   output: 'static',
-  integrations: [react(), markdoc({ tokenizerExtension: inlineTexExtension }), latexml(), decapLocal()],
+  integrations: [react(), markdoc({ allowHTML: true, tokenizerExtension: inlineTexExtension }), latexml(), decapLocal()],
   adapter: cloudflare({ prerenderEnvironment: 'node' }),
 });
