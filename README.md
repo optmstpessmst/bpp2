@@ -10,14 +10,14 @@ On the deployed site, the Decap CMS admin at `/admin/` edits the `main` branch t
 
 To enable in production, register a GitHub OAuth App using the site URL as its homepage and `https://<site-host>/callback` as its authorization callback URL.
 
-## Math and TeX
+## Typesetting
 
 Editorials and problems are written in Markdoc (`.mdoc`). There are four ways to include math or TeX.
 
 | Syntax | Rendered by | Best for |
 | --- | --- | --- |
-| `$...$` | KaTeX in the browser | Inline math in prose |
-| A `math` code fence | KaTeX at build time | Display equations, matrices, aligned blocks |
+| `$...$` | KaTeX | Inline math in prose |
+| A `math` code fence | KaTeX | Display equations, matrices, aligned blocks |
 | A `tex` code fence | make4ht | Full LaTeX documents, TikZ, complex layouts |
 | `{% tex file="..." /%}` | make4ht | Long TeX documents |
 
@@ -42,8 +42,6 @@ To display math blocks, use a code fence with the language `math`.
 \end{matrix}
 ```
 ````
-
-Display math is rendered at build time.
 
 ### TeX source in a code fence
 
@@ -74,7 +72,7 @@ For longer documents, keep the LaTeX in a `.tex` file and reference it with the 
 
 Only the `file` attribute is available on the tag. To provide TeX inline, use a `tex` code fence instead.
 
-### Other code fences
+### General code fences
 
 Any other fence language is rendered as a normal syntax-highlighted code block:
 
@@ -85,6 +83,19 @@ int main() {
 }
 ```
 ````
+
+HTML is also supported. To hide C++ code under a dropdown like in Codeforces:
+
+````
+<details>
+    <summary>C++ code</summary>
+
+```c++
+```
+</details>
+````
+
+The blank line after the `<summary>` before a fenced code block is needed for it to be parsed correctly.
 
 ### Common mistakes
 - The fence languages are case-sensitive: use `math` and `tex`, not `Math` or `TeX`.
