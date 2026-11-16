@@ -4,7 +4,12 @@ import type { AstroIntegration } from "astro";
 
 const require = createRequire(import.meta.url);
 const { runDevServer } = require("@decap/cli/dev") as {
-  runDevServer: (options: { dir: string; mode: "fs" }) => Promise<Server>;
+  runDevServer: (options: {
+    dir: string;
+    host: "127.0.0.1";
+    mode: "fs";
+    port: number;
+  }) => Promise<Server>;
 };
 
 export default function decapLocal(): AstroIntegration {
@@ -19,7 +24,12 @@ export default function decapLocal(): AstroIntegration {
           return;
         }
 
-        proxy = await runDevServer({ dir: server.config.root, mode: "fs" });
+        proxy = await runDevServer({
+          dir: server.config.root,
+          host: "127.0.0.1",
+          mode: "fs",
+          port: 8082,
+        });
         logger.info("Decap local proxy started in filesystem mode.");
       },
       "astro:server:done": async () => {
