@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # Wrangler local state
 .wrangler/
+
+# vscode stuff
+.vscode/

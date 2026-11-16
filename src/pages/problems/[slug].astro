@@ -13,6 +13,16 @@ export async function getStaticPaths() {
 const { problem } = Astro.props;
 const { Content } = await render(problem);
 const { title, contest, authors } = problem.data;
+const problemId = problem.data.id ?? problem.id;
+const editorials = await getCollection("editorials");
+const relatedEditorials = await Promise.all(
+  editorials
+    .filter((editorial) => editorial.data.problemId === problemId)
+    .map(async (editorial) => ({
+      data: editorial.data,
+      Content: (await render(editorial)).Content,
+    }))
+);
 ---
 
 <Layout title={title}>
@@ -44,6 +54,20 @@ const { title, contest, authors } = problem.data;
     </header>
 
     <Content />
+
+    {relatedEditorials.length > 0 && (
+      <section class="editorials" aria-labelledby="editorials-heading">
+        <h2 id="editorials-heading">Editorials</h2>
+        {relatedEditorials.map(({ data, Content: EditorialContent }) => (
+          <details>
+            <summary>{data.title}</summary>
+            <div class="editorial-content">
+              <EditorialContent />
+            </div>
+          </details>
+        ))}
+      </section>
+    )}
   </article>
 </Layout>
 
@@ -64,5 +88,25 @@ const { title, contest, authors } = problem.data;
   }
   article {
     padding: 0 5vw;
+  }
+  .editorials {
+    margin-top: 3rem;
+  }
+  .editorials h2 {
+    margin-bottom: 1rem;
+  }
+  details {
+    border: 1px solid #d9d9e5;
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0.9rem 1rem;
+  }
+  .editorial-content {
+    border-top: 1px solid #d9d9e5;
+    padding: 1rem;
   }
 </style>
