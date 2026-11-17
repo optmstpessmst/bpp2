@@ -2,6 +2,15 @@ name: Build CI Image
 
 on:
   workflow_call:
+    inputs:
+      image_tag:
+        description: Image tag to publish.
+        required: true
+        type: string
+      fingerprint:
+        description: Fingerprint of the CI image build configuration.
+        required: true
+        type: string
 
 jobs:
   build:
@@ -25,9 +34,11 @@ jobs:
         with:
           images: ghcr.io/optmstpessmst/bpp2-build
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ inputs.image_tag }}
+            type=raw,value=latest,enable=${{ inputs.image_tag == 'main' }}
+          labels: |
+            org.opencontainers.image.revision={{sha}}
+            io.bpp2.ci-image.fingerprint=${{ inputs.fingerprint }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v4
@@ -44,5 +55,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=bpp2-ci-image-${{ steps.meta.outputs.version }}
-          cache-to: type=gha,mode=max,scope=bpp2-ci-image-${{ steps.meta.outputs.version }}
+          cache-from: type=gha,scope=bpp2-ci-image-${{ inputs.fingerprint }}
+          cache-to: type=gha,mode=max,scope=bpp2-ci-image-${{ inputs.fingerprint }}
