@@ -1,0 +1,82 @@
+diff --git a/node_modules/@astrojs/markdoc/dist/content-entry-type.js b/node_modules/@astrojs/markdoc/dist/content-entry-type.js
+index 6d4bfd3..c5e4b25 100644
+--- a/node_modules/@astrojs/markdoc/dist/content-entry-type.js
++++ b/node_modules/@astrojs/markdoc/dist/content-entry-type.js
+@@ -49,6 +49,7 @@ export async function getContentEntryType({ markdocConfigResult, astroConfig, op
+ 				markdocConfig,
+ 				fileUrl,
+ 				allowHTML: options?.allowHTML,
++				tokenizerExtension: options?.tokenizerExtension,
+ 				tokenizer,
+ 				pluginContext,
+ 				root: astroConfig.root,
+@@ -85,6 +86,7 @@ export async function getContentEntryType({ markdocConfigResult, astroConfig, op
+ 				pluginContext,
+ 				filePath
+ 			});
++			const { tokenizerExtension: _tokenizerExtension, ...runtimeOptions } = options ?? {};
+ 			const res = `import { Renderer } from '@astrojs/markdoc/components';
+ import { createGetHeadings, createContentComponent } from '@astrojs/markdoc/runtime';
+ ${markdocConfigUrl ? `import markdocConfig from ${JSON.stringify(fileURLToPath(markdocConfigUrl))};` : "const markdocConfig = {};"}
+@@ -98,7 +100,7 @@ ${getStringifiedImports(componentConfigByNodeMap, "Node", astroConfig.root)}
+ const tagComponentMap = ${getStringifiedMap(componentConfigByTagMap, "Tag")};
+ const nodeComponentMap = ${getStringifiedMap(componentConfigByNodeMap, "Node")};
+ 
+-const options = ${JSON.stringify(options)};
++const options = ${JSON.stringify(runtimeOptions)};
+ 
+ const stringifiedAst = ${JSON.stringify(
+ 				/* Double stringify to encode *as* stringified JSON */
+@@ -123,7 +125,7 @@ export const Content = createContentComponent(
+ * Recursively resolve partial tags to their content.
+ * Note: Mutates the `ast` object directly.
+ */
+-async function resolvePartials({ ast, fileUrl, root, tokenizer, allowHTML, markdocConfig, pluginContext, raisePartialValidationErrors }) {
++async function resolvePartials({ ast, fileUrl, root, tokenizer, allowHTML, tokenizerExtension, markdocConfig, pluginContext, raisePartialValidationErrors }) {
+ 	const relativePartialPath = path.relative(fileURLToPath(root), fileURLToPath(fileUrl));
+ 	for (const node of ast.walk()) {
+ 		if (node.type === "tag" && node.tag === "partial") {
+@@ -162,6 +164,7 @@ message: `(Uncaught error) Partial tag requires a 'file' attribute` });
+ 				fileUrl: pathToFileURL(partialPath),
+ 				tokenizer,
+ 				allowHTML,
++				tokenizerExtension,
+ 				markdocConfig,
+ 				pluginContext,
+ 				raisePartialValidationErrors
+diff --git a/node_modules/@astrojs/markdoc/dist/options.d.ts b/node_modules/@astrojs/markdoc/dist/options.d.ts
+index e0b8de3..0d23f49 100644
+--- a/node_modules/@astrojs/markdoc/dist/options.d.ts
++++ b/node_modules/@astrojs/markdoc/dist/options.d.ts
+@@ -2,4 +2,8 @@ export interface MarkdocIntegrationOptions {
+     allowHTML?: boolean;
+     ignoreIndentation?: boolean;
+     typographer?: boolean;
++    tokenizerExtension?: MarkdocTokenizerExtension;
++}
++export interface MarkdocTokenizerExtension {
++    setup?: (parser: any) => void;
+ }
+diff --git a/node_modules/@astrojs/markdoc/dist/tokenizer.js b/node_modules/@astrojs/markdoc/dist/tokenizer.js
+index 61be5e5..fa0da74 100644
+--- a/node_modules/@astrojs/markdoc/dist/tokenizer.js
++++ b/node_modules/@astrojs/markdoc/dist/tokenizer.js
+@@ -20,7 +20,9 @@ allowComments: true };
+ 			// enable typographer to convert straight quotes to curly quotes, etc.
+ 			tokenizerOptions.typographer = options.typographer;
+ 		}
+-		_cachedMarkdocTokenizers[key] = new Markdoc.Tokenizer(tokenizerOptions);
++		const tokenizer = new Markdoc.Tokenizer(tokenizerOptions);
++		options?.tokenizerExtension?.setup?.(tokenizer.parser);
++		_cachedMarkdocTokenizers[key] = tokenizer;
+ 	}
+ 	return _cachedMarkdocTokenizers[key];
+ }
+@@ -28,5 +30,6 @@ allowComments: true };
+ // the life of module in certain scenarios (unit tests, etc.)
+ let _cachedMarkdocTokenizers = {};
+ function cacheKey(options) {
+-	return JSON.stringify(options);
++	const { tokenizerExtension, ...tokenizerOptions } = options ?? {};
++	return JSON.stringify(tokenizerOptions);
+ }

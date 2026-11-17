@@ -1,20 +1,27 @@
 import type { APIRoute } from "astro";
+import { parseCookie, stringifySetCookie } from "cookie";
 import {
   createGitHubOAuthApp,
   getCallbackUrl,
   oauthErrorResponse,
   popupResponse,
-  readCookie,
-  stateCookie,
 } from "../lib/github-oauth";
 
 export const prerender = false;
 
 export const GET: APIRoute = async ({ request, url }) => {
   const state = url.searchParams.get("state");
-  const expectedState = readCookie(request, "decap_oauth_state");
+  const expectedState = parseCookie(request.headers.get("Cookie") ?? "")["decap_oauth_state"];
   const clearStateCookie = (response: Response) => {
-    response.headers.append("Set-Cookie", stateCookie("", request, true));
+    response.headers.append("Set-Cookie", stringifySetCookie({
+      name: "decap_oauth_state",
+      value: "",
+      maxAge: 0,
+      path: "/callback",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: new URL(request.url).protocol === "https:",
+    }));
     return response;
   };
 

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Markdoc } from '@astrojs/markdoc/config';
+import { getMarkdocTokenizer } from '../node_modules/@astrojs/markdoc/dist/tokenizer.js';
+import { htmlTokenTransform } from '../node_modules/@astrojs/markdoc/dist/html/transform/html-token-transform.js';
 import {
-  installInlineMathRule,
+  inlineTexExtension,
   transformInlineMathText,
 } from '../src/lib/inline-math-tokenizer.mjs';
-
-installInlineMathRule(Markdoc);
 
 function collectTokens(tokens, seen = new Set()) {
   const collected = [];
@@ -19,8 +19,9 @@ function collectTokens(tokens, seen = new Set()) {
   return collected;
 }
 
-function inlineTokens(source) {
-  return collectTokens(new Markdoc.Tokenizer().tokenize(source));
+function inlineTokens(source, tokenizerOptions = {}) {
+  const tokenizer = getMarkdocTokenizer({ tokenizerExtension: inlineTexExtension, ...tokenizerOptions });
+  return collectTokens(tokenizer.tokenize(source));
 }
 
 function mathSources(tokens) {
@@ -31,7 +32,7 @@ function mathSources(tokens) {
 }
 
 test('captures raw TeX before Markdown escape processing', () => {
-  const tokens = new Markdoc.Tokenizer().tokenize(String.raw`Use $\{x\}$ and $\frac{1}{2}$`);
+  const tokens = inlineTokens(String.raw`Use $\{x\}$ and $\frac{1}{2}$`);
   assert.deepEqual(mathSources(tokens), [String.raw`\{x\}`, String.raw`\frac{1}{2}`]);
 
   const ast = Markdoc.parse(tokens);
@@ -59,6 +60,16 @@ test('does not parse math inside inline code or fenced code in nested blocks', (
   assert.deepEqual(mathSources(tokens), ['quoted-math', 'list-math']);
   assert.ok(collectTokens(tokens).some((token) => token.type === 'code_inline' && token.content === '$inline-code$'));
   assert.ok(collectTokens(tokens).some((token) => token.type === 'fence' && token.content.includes('$fenced-code$')));
+});
+
+test('normalizes math inside raw HTML blocks', () => {
+  const tokenizer = getMarkdocTokenizer({ allowHTML: true, tokenizerExtension: inlineTexExtension });
+  const tokens = tokenizer.tokenize('<div>\n$html-inside-html$ and plain text\n</div>\n');
+  const transformed = htmlTokenTransform(tokenizer, tokens);
+
+  assert.deepEqual([...new Set(mathSources(transformed))], ['html-inside-html']);
+  assert.ok(collectTokens(transformed).every((token) => token.type !== 'math_inline'));
+  assert.ok(collectTokens(transformed).some((token) => token.type === 'text' && token.content.includes('plain text')));
 });
 
 test('transforms protected math markers into inline component tags', () => {

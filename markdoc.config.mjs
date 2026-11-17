@@ -1,7 +1,5 @@
 import { Markdoc, component, defineMarkdocConfig } from '@astrojs/markdoc/config';
-import { installInlineMathRule, transformInlineMathText } from './src/lib/inline-math-tokenizer.mjs';
-
-installInlineMathRule(Markdoc);
+import { transformInlineMathText } from './src/lib/inline-math-tokenizer.mjs';
 
 const inlineMathRender = component('./src/components/InlineMath.astro');
 

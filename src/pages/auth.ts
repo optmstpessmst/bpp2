@@ -1,9 +1,9 @@
 import type { APIRoute } from "astro";
+import { stringifySetCookie } from "cookie";
 import {
   createGitHubOAuthApp,
   getCallbackUrl,
   oauthErrorResponse,
-  stateCookie,
 } from "../lib/github-oauth";
 
 export const prerender = false;
@@ -23,7 +23,15 @@ export const GET: APIRoute = async ({ request }) => {
       status: 302,
       headers: {
         Location: url,
-        "Set-Cookie": stateCookie(state, request),
+        "Set-Cookie": stringifySetCookie({
+          name: "decap_oauth_state",
+          value: state,
+          maxAge: 600,
+          path: "/callback",
+          httpOnly: true,
+          sameSite: "lax",
+          secure: new URL(request.url).protocol === "https:",
+        }),
         "Cache-Control": "no-store",
       },
     });

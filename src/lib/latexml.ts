@@ -1,12 +1,8 @@
-import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
+import { NonZeroExitError, x } from "tinyexec";
 import { SITE_FONT_FAMILY, SITE_FONT_STYLESHEET } from "./fonts";
-
-
-const execFileAsync = promisify(execFile);
 
 const projectRoot = process.cwd();
 const iframeFontStyles = `
@@ -30,42 +26,44 @@ function within(root: string, target: string): boolean {
   return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
 }
 
+async function run(
+  command: string,
+  args: string[],
+  options: { cwd?: string; timeout: number },
+): Promise<void> {
+  try {
+    await x(command, args, {
+      throwOnError: true,
+      timeout: options.timeout,
+      nodeOptions: { cwd: options.cwd },
+    });
+  } catch (error) {
+    if (error instanceof NonZeroExitError) {
+      const output = [error.output?.stderr, error.output?.stdout].filter(Boolean).join("\n");
+      if (output) throw new Error(`${error.message}\n${output}`, { cause: error });
+    }
+    throw error;
+  }
+}
+
 async function runMake4ht(
   sourceFile: string,
   directory: string,
   buildDir: string,
 ): Promise<string> {
   const base = path.basename(sourceFile);
-  try {
-    await fs.cp(directory, buildDir, { recursive: true });
-    await execFileAsync("make4ht", ["-u", base, "svg,pic-tabular"], {
-      cwd: buildDir,
-      timeout: 300_000,
-    });
-  } catch (error) {
-    const failure = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
-    const details = [failure.stderr, failure.stdout, failure.message].filter(Boolean).join("\n");
-    const hint = failure.code === "ENOENT"
-      ? " Is make4ht installed and in PATH? (It's usually part of TeX Live)"
-      : "";
-    throw new Error(`make4ht failed compiling ${sourceFile}.${hint}\n${details}`, { cause: error });
-  }
+  await fs.cp(directory, buildDir, { recursive: true });
+  await run("make4ht", ["-u", base, "svg,pic-tabular"], {
+    cwd: buildDir,
+    timeout: 300_000,
+  });
   return path.join(buildDir, path.parse(base).name + ".html");
 }
 
-
 async function runMonolith(input: string, output: string): Promise<void> {
-  try {
-    await execFileAsync("monolith", ["--quiet", "--isolate", "--no-metadata", input, "--output", output], {
-      timeout: 120_000,
-      maxBuffer: 32 * 1024 * 1024,
-    });
-  } catch (error) {
-    const failure = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
-    const details = [failure.stderr, failure.stdout, failure.message].filter(Boolean).join("\n");
-    const hint = failure.code === "ENOENT" ? " Is Monolith installed and in PATH?" : "";
-    throw new Error(`Monolith failed bundling ${input}.${hint}\n${details}`, { cause: error });
-  }
+  await run("monolith", ["--quiet", "--isolate", "--no-metadata", input, "--output", output], {
+    timeout: 120_000,
+  });
 }
 
 async function compileDocument(source: string): Promise<string> {

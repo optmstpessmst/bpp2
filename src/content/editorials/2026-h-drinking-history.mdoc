@@ -1,5 +1,6 @@
 ---
-title: 2026H - Drinking History
+title: Editorial 1
+problemId: 2026-h-drinking-history
 contest: NOI.PH Eliminations 2026
 tags:
   - graphs
@@ -9,6 +10,32 @@ authors:
   - name: Krys Darilay
     url: https://codeforces.com/profile/optmstpessmst
 ---
+# Core Insight
+
+Every year in the collection has four digits, so its first two digits are a number from 15 to 20. For some bottle `x`, a bottle `y` can only follow it if the last two digits of `x` (which we can get by doing `x % 100`) equal the first two digits of `y` (which we can get by doing `y // 100`).
+
+The first two digits of any bottle are at most 20, so a bottle can have a successor only if its last two digits are at most 20. Call such a bottle **linkable**. Every other bottle is a **dead end** and can only be the last bottle in the row. So an optimal row is a sequence of linkable bottles, optionally followed by a single dead-end bottle.
+
+Because the years are distinct, the number of linkable bottles is small in every subtask.
+
+
+
 # Subtask 1 - 1986
 
-For this subtask, it should be easy enough to notice that, since all the years included are only between 1986 and 2015, there are no possible pairs of years to link together. You can simply pick any year (perhaps the first, for simplicity) and have that as the sole member of the thumbnail.
+For this subtask, it should be easy enough to notice that, since all the years included are only between 1986 and 2015, there are no linkable bottles. You can simply pick any year (perhaps the first, for simplicity) and have that as the sole member of the thumbnail.
+
+
+
+# Subtask 2 - 1898
+
+Here, the first two digits of the years can only be 18, 19, or 20. The only *linkable* years here are therefore only 1918, 1919, and 1920. (Any other years that end in 18, 19, or 20 are too old or too new.)
+
+Let's go through each possibility.
+
+* If we use **1918**, we can only follow it up by a year starting with 18, which can only be 1898 or 1899. We can't link either of these.
+* If we use **1920**, we can only follow it up by a year starting with 20, none of which are linkable.
+* If we use **1919**, we can only follow it up by other years starting with 19, including 1918 and 1920.
+
+From these, we can imply that the longest chain we can create has a length of 3.
+
+Since the years are distinct, n is small (specifically `n <= 118`) so iterating through every pair and linking them and finding the longest is fast enough.
