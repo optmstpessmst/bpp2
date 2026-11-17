@@ -83,37 +83,22 @@ jobs:
       - name: Compare CI image
         id: detect
         env:
-          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+          IMAGE: ghcr.io/optmstpessmst/bpp2-build:${{ steps.image.outputs.tag }}
           FINGERPRINT: ${{ steps.fingerprint.outputs.value }}
+        shell: bash
         run: |
-          image="ghcr.io/optmstpessmst/bpp2-build:$IMAGE_TAG"
+          set -o pipefail
+
           image_changed=false
 
-          if config=$(crane config "$image" 2>error.log); then
-            image_fingerprint=$(
-              echo "$config" | jq -r \
-                '.config.Labels["io.bpp2.ci-image.fingerprint"] // empty'
-            )
-
-            if [ "$image_fingerprint" != "$FINGERPRINT" ]; then
-              image_changed=true
-            fi
-          else
-            if grep -Eiq \
-              'MANIFEST_UNKNOWN|manifest unknown|manifest not found' \
-              error.log; then
-              image_changed=true
-            else
-              cat error.log >&2
-              exit 1
-            fi
+          if ! image_fingerprint=$(crane config "$IMAGE" 2>/dev/null |
+            jq -r '.config.Labels["io.bpp2.ci-image.fingerprint"] // empty'); then
+            image_changed=true
+          elif [ "$image_fingerprint" != "$FINGERPRINT" ]; then
+            image_changed=true
           fi
 
           echo "image_changed=$image_changed" >> "$GITHUB_OUTPUT"
-
-          echo "Image: $image"
-          echo "Expected fingerprint: $FINGERPRINT"
-          echo "Image changed: $image_changed"
 
   publish-ci-image:
     needs: detect-ci-image-changes
