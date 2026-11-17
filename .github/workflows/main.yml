@@ -6,44 +6,145 @@ on:
   # Using a different branch name? Replace `main` with your branch’s name
   push:
     branches: [ main ]
-  # Allows you to run this workflow manually from the Actions tab on GitHub.
-  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # workflow dispatched removed for now
+
+concurrency:
+  group: bpp2-production
+  queue: max
 
 permissions:
   contents: read
 
 jobs:
-  deploy:
+  detect-ci-image-changes:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    concurrency:
-      group: production-deploy
-      cancel-in-progress: false
-      queue: max
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      image_changed: ${{ steps.detect.outputs.image_changed }}
+      image_tag: ${{ steps.image.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Install TeX Live
+      - name: Determine CI image tag
+        id: image
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y texlive-plain-generic texlive-pictures texlive-extra-utils dvisvgm
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            tag="pr-$PR_NUMBER"
+          else
+            tag="main"
+          fi
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Install Monolith
-        run: cargo install monolith --version 2.11.7 --locked
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-          
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compare CI image
+        id: detect
+        env:
+          HEAD_SHA: ${{ github.sha }}
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          image_changed=false
+          image="ghcr.io/optmstpessmst/bpp2-build:$IMAGE_TAG"
+
+          if ! docker pull "$image"; then
+            image_changed=true
+          else
+            image_revision="$(docker image inspect "$image" \
+              --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
+
+            if [ -z "$image_revision" ] || \
+              [ "$image_revision" = "<no value>" ] || \
+              ! git cat-file -e "${image_revision}^{commit}" 2>/dev/null; then
+              # Missing/broken metadata
+              image_changed=true
+            elif git diff --quiet "$image_revision" "$HEAD_SHA" -- \
+              docker/ci.Dockerfile \
+              .github/workflows/build-ci-image.yml; then
+              image_changed=false
+            else
+              image_changed=true
+            fi
+          fi
+
+          echo "image_changed=$image_changed" >> "$GITHUB_OUTPUT"
+
+  publish-ci-image:
+    needs: detect-ci-image-changes
+    if: needs.detect-ci-image-changes.outputs.image_changed == 'true'
+    uses: ./.github/workflows/build-ci-image.yml
+    permissions:
+      contents: read
+      packages: write
+
+  deploy:
+    needs: [detect-ci-image-changes, publish-ci-image]
+    if: >-
+      always() &&
+      needs.detect-ci-image-changes.result == 'success' &&
+      (needs.publish-ci-image.result == 'success' ||
+      needs.publish-ci-image.result == 'skipped')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    container:
+      image: ghcr.io/optmstpessmst/bpp2-build:${{ needs.detect-ci-image-changes.outputs.image_tag }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Restore npm cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci
-        
+
+      # https://github.com/withastro/action/blob/main/action.yml
+      - name: Restore Astro cache
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.astro
+          key: astro-cache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            astro-cache-${{ runner.os }}-
+
       - name: Build Astro
         run: npm run build
-        
+
       - name: Deploy to Cloudflare
+        if: >-
+          github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
