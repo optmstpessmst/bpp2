@@ -15,4 +15,19 @@ const problems = defineCollection({
   schema: collectionDefinitions.problems.schema,
 });
 
-export const collections = { editorials, problems };
+const authors = defineCollection({
+  loader: loader(collectionDefinitions.authors.folder),
+  schema: collectionDefinitions.authors.schema,
+});
+
+const tags = defineCollection({
+  loader: loader(collectionDefinitions.tags.folder),
+  schema: collectionDefinitions.tags.schema,
+});
+
+const contests = defineCollection({
+  loader: loader(collectionDefinitions.contests.folder),
+  schema: collectionDefinitions.contests.schema,
+});
+
+export const collections = { editorials, problems, authors, tags, contests };

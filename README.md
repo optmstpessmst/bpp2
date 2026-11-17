@@ -4,9 +4,9 @@ BPP2 is a repository of editorials for Philippine competitive programming compet
 
 ## Content administration
 
-Local CMS saves write directly to files in this checkout. To skip the local proxy, set `BPP2_SKIP_DECAP_PROXY=1` when starting Astro, for example: `BPP2_SKIP_DECAP_PROXY=1 astro dev --background`.
+Local CMS saves write directly to files in this checkout.
 
-On the deployed site, the Decap CMS admin at `/admin/` edits the `main` branch through GitHub and uses the editorial workflow to create pull requests. Editors need write access to this repository.
+On the deployed site, the Sveltia CMS admin at `/admin/` edits the `main` branch through GitHub and uses the editorial workflow to create pull requests. Editors need write access to this repository.
 
 To enable in production, register a GitHub OAuth App using the site URL as its homepage and `https://<site-host>/callback` as its authorization callback URL.
 

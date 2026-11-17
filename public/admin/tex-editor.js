@@ -21,8 +21,11 @@ CMS.registerEditorComponent({
     return `{% tex ${attributes.join(" ")} /%}`;
   },
   toPreview(data) {
-    return h("div", { className: "tex-editor-preview" }, `TeX attachment: ${data.file}`);
-  },
+    const element = document.createElement("div");
+    element.className = "tex-editor-preview";
+    element.textContent = `TeX attachment: ${data.file ?? ""}`;
+    return element;
+  }
 });
 
 CMS.registerEditorComponent({
@@ -43,7 +46,10 @@ CMS.registerEditorComponent({
   toBlock(data) {
     return `\`\`\`tex\n${data.raw}\n\`\`\``;
   },
-  toPreview() {
-    return h("div", { className: "tex-editor-preview" }, "TeX source (preview unavailable)");
-  },
+  toPreview(data) {
+    const element = document.createElement("div");
+    element.className = "tex-editor-preview";
+    element.textContent = `[TeX source]`;
+    return element;
+  }
 });
