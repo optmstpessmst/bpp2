@@ -49,7 +49,7 @@ CMS.registerEditorComponent({
   toPreview(data) {
     const element = document.createElement("div");
     element.className = "tex-editor-preview";
-    element.textContent = `TeX source]`;
+    element.textContent = `[TeX source]`;
     return element;
   }
 });
