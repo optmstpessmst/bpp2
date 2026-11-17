@@ -25,3 +25,5 @@ pnpm-debug.log*
 
 # Wrangler local state
 .wrangler/
+.vscode/c_cpp_properties.json
+.vscode/settings.json
