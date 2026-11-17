@@ -2,6 +2,7 @@ import { z } from "astro/zod";
 
 const editorials = z.object({
   title: z.string(),
+  problemId: z.string().optional(),
   contest: z.string().optional(),
   tags: z.array(z.string()).default([]),
   authors: z
@@ -16,6 +17,7 @@ const editorials = z.object({
 
 const problems = z.object({
   title: z.string(),
+  id: z.string().optional(),
   contest: z.string().optional(),
   authors: z
     .array(
