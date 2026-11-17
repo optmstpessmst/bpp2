@@ -42,7 +42,7 @@ const collections = Object.entries(collectionDefinitions).map(([name, def]) => {
     label: def.label,
     folder: def.folder,
     media_folder: "/" + def.folder + "/uploads",
-    public_folder: def.folder + "/uploads",
+    public_folder: "/" + def.folder + "/uploads",
     create: true,
     extension: "mdoc",
     format: "frontmatter",
