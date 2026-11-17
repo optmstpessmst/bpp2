@@ -8,22 +8,27 @@ const collections = Object.entries(collectionDefinitions).map(
   ([name, def]) => ({
     name,
     label: def.label,
+    icon: def.icon,
     folder: def.folder,
     media_folder: "/" + def.folder + "/uploads",
     public_folder: "/" + def.folder + "/uploads",
     create: true,
     extension: "mdoc",
     format: "frontmatter",
-    identifier_field: "title",
+    identifier_field: def.identifierField,
     slug: "{{slug}}",
     fields: [
       ...def.cmsFields,
-      {
-        label: def.body,
-        name: "body",
-        widget: "markdown",
-        modes: ["rich_text", "raw"],
-      },
+      ...(def.body
+        ? [
+            {
+              label: def.body,
+              name: "body",
+              widget: "markdown",
+              modes: ["rich_text", "raw"],
+            },
+          ]
+        : []),
     ],
   })
 );

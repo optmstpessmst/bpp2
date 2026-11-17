@@ -2,7 +2,14 @@
 import Layout from "../components/Layout.astro";
 import { getCollection } from "astro:content";
 
-const problems = await getCollection("problems");
+const [problems, contests] = await Promise.all([
+  getCollection("problems"),
+  getCollection("contests"),
+]);
+
+const contestTitles = new Map<string, string>(
+  contests.map(({ id, data }) => [id, data.title] as const)
+);
 ---
 
 <Layout title="Problems">
@@ -11,8 +18,10 @@ const problems = await getCollection("problems");
     <ul class="list">
       {problems.map(({ id, data }) => (
         <li>
-            <a href={`/problems/${id}`}>{data.title}</a>
-            {data.contest && <span class="meta"> · {data.contest}</span>}
+          <a href={`/problems/${id}`}>{data.title}</a>
+          {data.contest && (
+            <span class="meta"> · {contestTitles.get(data.contest) ?? data.contest}</span>
+          )}
         </li>
       ))}
     </ul>

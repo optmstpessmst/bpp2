@@ -12,9 +12,37 @@ export async function getStaticPaths() {
 
 const { problem } = Astro.props;
 const { Content } = await render(problem);
-const { title, contest, authors } = problem.data;
+const { title } = problem.data;
 const problemId = problem.data.id ?? problem.id;
-const editorials = await getCollection("editorials");
+
+const [authorEntries, contestEntries, editorials] = await Promise.all([
+  getCollection("authors"),
+  getCollection("contests"),
+  getCollection("editorials"),
+]);
+
+type AuthorData = (typeof authorEntries)[number]["data"];
+type ContestData = (typeof contestEntries)[number]["data"];
+
+const authorsById = new Map<string, AuthorData>(
+  authorEntries.map(({ id, data }) => [id, data] as const)
+);
+const contestsById = new Map<string, ContestData>(
+  contestEntries.map(({ id, data }) => [id, data] as const)
+);
+
+const authors = problem.data.authors.map(({ author, role }) => {
+  const profile = authorsById.get(author);
+  if (!profile) {
+    throw new Error(`Unknown author "${author}" in problem "${problem.id}"`);
+  }
+  return { ...profile, role };
+});
+
+const contest = problem.data.contest
+  ? contestsById.get(problem.data.contest)?.title ?? problem.data.contest
+  : undefined;
+
 const relatedEditorials = await Promise.all(
   editorials
     .filter((editorial) => editorial.data.problemId === problemId)
@@ -38,14 +66,16 @@ const relatedEditorials = await Promise.all(
       {authors.length > 0 && (
         <p class="authors">
           By{" "}
-          {authors.map((a, i) => (
+          {authors.map((author, i) => (
             <>
-              {a.url ? (
-                <a href={a.url} target="_blank" rel="noopener noreferrer">{a.name}</a>
+              {author.url ? (
+                <a href={author.url} target="_blank" rel="noopener noreferrer">
+                  {author.name}
+                </a>
               ) : (
-                a.name
+                author.name
               )}
-              {a.role && ` (${a.role})`}
+              {author.role && ` (${author.role})`}
               {i < authors.length - 1 && ", "}
             </>
           ))}
