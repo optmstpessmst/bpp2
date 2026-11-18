@@ -1,13 +1,40 @@
 diff --git a/node_modules/@astrojs/markdoc/dist/content-entry-type.js b/node_modules/@astrojs/markdoc/dist/content-entry-type.js
-index c5e4b25..58811b7 100644
+index c5e4b25..1a7ba45 100644
 --- a/node_modules/@astrojs/markdoc/dist/content-entry-type.js
 +++ b/node_modules/@astrojs/markdoc/dist/content-entry-type.js
-@@ -89,7 +89,7 @@ export async function getContentEntryType({ markdocConfigResult, astroConfig, op
- 			const { tokenizerExtension: _tokenizerExtension, ...runtimeOptions } = options ?? {};
- 			const res = `import { Renderer } from '@astrojs/markdoc/components';
- import { createGetHeadings, createContentComponent } from '@astrojs/markdoc/runtime';
--${markdocConfigUrl ? `import markdocConfig from ${JSON.stringify(fileURLToPath(markdocConfigUrl))};` : "const markdocConfig = {};"}
-+${markdocConfigUrl ? `import markdocConfigBase from ${JSON.stringify(fileURLToPath(markdocConfigUrl))};\nconst markdocConfig = { ...markdocConfigBase };\nmarkdocConfig.ctx = { ...markdocConfig.ctx, entryFilePath: ${JSON.stringify(filePath)} };` : `const markdocConfigBase = {};\nconst markdocConfig = { ...markdocConfigBase };\nmarkdocConfig.ctx = { ...markdocConfig.ctx, entryFilePath: ${JSON.stringify(filePath)} };`}
- 
- import { assetsConfig } from '@astrojs/markdoc/runtime-assets-config';
- markdocConfig.nodes = { ...assetsConfig.nodes, ...markdocConfig.nodes };
+@@ -10,6 +10,19 @@ import { htmlTokenTransform } from "./html/transform/html-token-transform.js";
+ import { setupConfig } from "./runtime.js";
+ import { getMarkdocTokenizer } from "./tokenizer.js";
+ import { isComponentConfig, isValidUrl, MarkdocError, prependForwardSlash } from "./utils.js";
++// Mark the origin of every AST node. Enumerable metadata is required because
++// partial expansion copies the parsed partial root with Object.assign().
++function setSourceFilePath(node, filePath) {
++	Object.defineProperty(node, "__sourceFilePath", {
++		value: filePath,
++		enumerable: true,
++		writable: true,
++		configurable: true
++	});
++	for (const child of node.children ?? []) {
++		setSourceFilePath(child, filePath);
++	}
++}
+ export async function getContentEntryType({ markdocConfigResult, astroConfig, options }) {
+ 	return {
+ 		extensions: [".mdoc"],
+@@ -31,6 +44,7 @@ export async function getContentEntryType({ markdocConfigResult, astroConfig, op
+ 				tokens = htmlTokenTransform(tokenizer, tokens);
+ 			}
+ 			const ast = Markdoc.parse(tokens);
++			setSourceFilePath(ast, path.resolve(fileURLToPath(fileUrl)));
+ 			const userMarkdocConfig = markdocConfigResult?.config ?? {};
+ 			const markdocConfigUrl = markdocConfigResult?.fileUrl;
+ 			const pluginContext = this;
+@@ -157,6 +171,7 @@ message: `(Uncaught error) Partial tag requires a 'file' attribute` });
+ 				partialTokens = htmlTokenTransform(tokenizer, partialTokens);
+ 			}
+ 			const partialAst = Markdoc.parse(partialTokens);
++			setSourceFilePath(partialAst, path.resolve(partialPath));
+ 			raisePartialValidationErrors(partialAst, partialPath);
+ 			await resolvePartials({
+ 				ast: partialAst,

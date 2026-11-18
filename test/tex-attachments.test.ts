@@ -17,7 +17,7 @@ test("resolves a relative editorial TeX attachment", async () => {
   );
 });
 
-test("rejects absolute paths, invalid characters, and missing entry files", async () => {
+test("rejects absolute paths and invalid characters", async () => {
   await assert.rejects(
     resolveTexPath(
       "/src/content/editorials/uploads/algolympics-2026-m.tex",
@@ -28,10 +28,6 @@ test("rejects absolute paths, invalid characters, and missing entry files", asyn
   await assert.rejects(
     resolveTexPath("./uploads\\algolympics-2026-m.tex", editorialSource),
     /invalid characters/,
-  );
-  await assert.rejects(
-    resolveTexPath("./uploads/algolympics-2026-m.tex"),
-    /entry file path/,
   );
 });
 

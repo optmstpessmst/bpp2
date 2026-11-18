@@ -16,7 +16,7 @@ export default defineMarkdocConfig({
           config.tags.tex.render,
           {
             file: node.attributes.file,
-            entryFilePath: config.ctx?.entryFilePath, //  this relies on a patch to the markdoc integration
+            sourceFilePath: node.__sourceFilePath, //  this relies on a patch to the markdoc integration
           },
           []
         );

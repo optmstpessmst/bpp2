@@ -10,7 +10,7 @@ const iframeFontStyles = `
 <link href="${SITE_FONT_STYLESHEET}" rel="stylesheet">
 <style>
   html, body { max-width: none !important; padding: 0 !important; } /* remove width limit and padding */
-  body { font-family: ${SITE_FONT_FAMILY}; } 
+  body { font-family: ${SITE_FONT_FAMILY}; }
 </style>`;
 
 function injectIframeFontStyles(html: string): string {
@@ -91,7 +91,7 @@ export async function compileTexSource(raw: string): Promise<string> {
 
 export async function resolveTexPath(
   file: string,
-  entryFilePath?: string,
+  sourceFilePath: string,
 ): Promise<string> {
   if (typeof file !== "string" || path.extname(file).toLowerCase() !== ".tex") {
     throw new Error("Markdoc tex tag must reference a .tex file path.");
@@ -101,13 +101,16 @@ export async function resolveTexPath(
     throw new Error("TeX attachments must be relative paths without invalid characters.");
   }
 
-  if (!entryFilePath) {
-    throw new Error("Relative TeX attachments require the entry file path.");
+  const baseDirectory = path.dirname(path.resolve(sourceFilePath));
+  const candidate = path.resolve(baseDirectory, file);
+
+  let source: string;
+  try {
+    source = await fs.realpath(candidate);
+  } catch (error) {
+    throw new Error(`TeX attachment does not exist or cannot be accessed: ${file}`, { cause: error });
   }
 
-  const source = await fs.realpath(
-    path.resolve(path.dirname(path.resolve(entryFilePath)), file),
-  );
   const stat = await fs.stat(source);
   if (!stat.isFile()) {
     throw new Error(`TeX attachment is not a regular file: ${file}`);
@@ -118,7 +121,7 @@ export async function resolveTexPath(
 
 export async function compileTexDocument(
   file: string,
-  entryFilePath?: string,
+  sourceFilePath: string,
 ): Promise<string> {
-  return compileDocument(await resolveTexPath(file, entryFilePath));
+  return compileDocument(await resolveTexPath(file, sourceFilePath));
 }
