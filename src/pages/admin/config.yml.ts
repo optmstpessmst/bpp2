@@ -10,8 +10,8 @@ const collections = Object.entries(collectionDefinitions).map(
     label: def.label,
     icon: def.icon,
     folder: def.folder,
-    media_folder: "/" + def.folder + "/uploads",
-    public_folder: "/" + def.folder + "/uploads",
+    media_folder: "uploads",
+    public_folder: "./uploads",
     create: true,
     extension: "mdoc",
     format: "frontmatter",
@@ -47,8 +47,8 @@ export const GET: APIRoute = ({ request }) => {
       site_domain: host,
     },
     publish_mode: "editorial_workflow",
-    media_folder: "public",
-    public_folder: "/public",
+    media_folder: "/public/uploads",
+    public_folder: "/uploads",
     collections,
   };
 

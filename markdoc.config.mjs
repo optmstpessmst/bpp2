@@ -11,6 +11,16 @@ export default defineMarkdocConfig({
       attributes: {
         file: { type: String },
       },
+      transform(node, config) {
+        return new Markdoc.Tag(
+          config.tags.tex.render,
+          {
+            file: node.attributes.file,
+            entryFilePath: config.ctx?.entryFilePath, //  this relies on a patch to the markdoc integration
+          },
+          []
+        );
+      },
     },
   },
   nodes: {

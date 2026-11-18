@@ -1,0 +1,13 @@
+diff --git a/node_modules/@astrojs/markdoc/dist/content-entry-type.js b/node_modules/@astrojs/markdoc/dist/content-entry-type.js
+index c5e4b25..58811b7 100644
+--- a/node_modules/@astrojs/markdoc/dist/content-entry-type.js
++++ b/node_modules/@astrojs/markdoc/dist/content-entry-type.js
+@@ -89,7 +89,7 @@ export async function getContentEntryType({ markdocConfigResult, astroConfig, op
+ 			const { tokenizerExtension: _tokenizerExtension, ...runtimeOptions } = options ?? {};
+ 			const res = `import { Renderer } from '@astrojs/markdoc/components';
+ import { createGetHeadings, createContentComponent } from '@astrojs/markdoc/runtime';
+-${markdocConfigUrl ? `import markdocConfig from ${JSON.stringify(fileURLToPath(markdocConfigUrl))};` : "const markdocConfig = {};"}
++${markdocConfigUrl ? `import markdocConfigBase from ${JSON.stringify(fileURLToPath(markdocConfigUrl))};\nconst markdocConfig = { ...markdocConfigBase };\nmarkdocConfig.ctx = { ...markdocConfig.ctx, entryFilePath: ${JSON.stringify(filePath)} };` : `const markdocConfigBase = {};\nconst markdocConfig = { ...markdocConfigBase };\nmarkdocConfig.ctx = { ...markdocConfig.ctx, entryFilePath: ${JSON.stringify(filePath)} };`}
+ 
+ import { assetsConfig } from '@astrojs/markdoc/runtime-assets-config';
+ markdocConfig.nodes = { ...assetsConfig.nodes, ...markdocConfig.nodes };

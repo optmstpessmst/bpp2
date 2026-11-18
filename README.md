@@ -67,7 +67,7 @@ Local development requires `make4ht` and `monolith` to be installed and availabl
 For longer documents, keep the LaTeX in a `.tex` file and reference it with the `tex` tag:
 
 ```
-{% tex file="src/content/editorials/uploads/editorial.tex" /%}
+{% tex file="./uploads/editorial.tex" /%}
 ```
 
 Only the `file` attribute is available on the tag. To provide TeX inline, use a `tex` code fence instead.
