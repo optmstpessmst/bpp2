@@ -18,6 +18,7 @@ const editorials = await getCollection("editorials");
 const relatedEditorials = await Promise.all(
   editorials
     .filter((editorial) => editorial.data.problemId === problemId)
+    .sort((a, b) => a.id.localeCompare(b.id))
     .map(async (editorial) => ({
       data: editorial.data,
       Content: (await render(editorial)).Content,
@@ -55,19 +56,41 @@ const relatedEditorials = await Promise.all(
 
     <Content />
 
-    {relatedEditorials.length > 0 && (
-      <section class="editorials" aria-labelledby="editorials-heading">
-        <h2 id="editorials-heading">Editorials</h2>
-        {relatedEditorials.map(({ data, Content: EditorialContent }) => (
-          <details>
-            <summary>{data.title}</summary>
-            <div class="editorial-content">
-              <EditorialContent />
-            </div>
-          </details>
-        ))}
-      </section>
-    )}
+    {relatedEditorials.map(({ data, Content: EditorialContent }, i) => (
+      <details>
+        <summary>Editorial {i + 1}</summary>
+        <div class="editorial-content">
+          <div class="editorial-meta">
+            {data.authors.length > 0 && (
+              <p class="editorial-authors" style="margin-top:0">
+                Editorial written by{" "}
+                {data.authors.map((a, j) => (
+                  <>
+                    {a.url ? (
+                      <a href={a.url} target="_blank" rel="noopener noreferrer">{a.name}</a>
+                    ) : (
+                      a.name
+                    )}
+                    {j < data.authors.length - 1 && ", "}
+                  </>
+                ))}
+              </p>
+            )}
+            {data.tags.length > 0 && (
+              <div class="tags-row">
+                <span class="tags-label">Tags:</span>
+                <ul class="tags">
+                  {data.tags.map((tag) => (
+                    <li>{tag}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <EditorialContent />
+        </div>
+      </details>
+    ))}
   </article>
 </Layout>
 
@@ -108,5 +131,39 @@ const relatedEditorials = await Promise.all(
   .editorial-content {
     border-top: 1px solid #d9d9e5;
     padding: 1rem;
+  }
+
+  .editorial-meta {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #d9d9e5;
+  }
+  .editorial-authors {
+    margin: 0 0 0.6rem;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .tags li {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    background: #1f1f3a;
+    color: #fff;
+  }
+
+  .tags-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .tags-label {
+    font-weight: 600;
   }
 </style>
