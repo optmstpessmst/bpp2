@@ -2,16 +2,15 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { NonZeroExitError, x } from "tinyexec";
-import { SITE_FONT_FAMILY, SITE_FONT_STYLESHEET } from "./fonts";
+import { SITE_FONT_FAMILY, SITE_FONT_STYLESHEET } from "./fonts.ts";
 
-const projectRoot = process.cwd();
 const iframeFontStyles = `
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="${SITE_FONT_STYLESHEET}" rel="stylesheet">
 <style>
   html, body { max-width: none !important; padding: 0 !important; } /* remove width limit and padding */
-  body { font-family: ${SITE_FONT_FAMILY}; } 
+  body { font-family: ${SITE_FONT_FAMILY}; }
 </style>`;
 
 function injectIframeFontStyles(html: string): string {
@@ -19,11 +18,6 @@ function injectIframeFontStyles(html: string): string {
     return html.replace(/<\/head\s*>/i, `${iframeFontStyles}\n</head>`);
   }
   return `${iframeFontStyles}\n${html}`;
-}
-
-function within(root: string, target: string): boolean {
-  const relative = path.relative(root, target);
-  return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
 }
 
 async function run(
@@ -95,21 +89,39 @@ export async function compileTexSource(raw: string): Promise<string> {
   }
 }
 
-export async function compileTexDocument(file: string): Promise<string> {
+export async function resolveTexPath(
+  file: string,
+  sourceFilePath: string,
+): Promise<string> {
   if (typeof file !== "string" || path.extname(file).toLowerCase() !== ".tex") {
     throw new Error("Markdoc tex tag must reference a .tex file path.");
   }
 
-  const [source] = await Promise.all([
-    fs.realpath(path.resolve(projectRoot, file)),
-  ]).catch((error) => {
-    throw new Error(`LaTeXML input does not exist or cannot be accessed: ${file}`, { cause: error });
-  });
-  if (!within(projectRoot, source)) throw new Error(`TeX documents must be inside ${projectRoot}: ${file}`);
+  if (path.isAbsolute(file) || file.includes("\\") || file.includes("\0")) {
+    throw new Error("TeX attachments must be relative paths without invalid characters.");
+  }
+
+  const baseDirectory = path.dirname(path.resolve(sourceFilePath));
+  const candidate = path.resolve(baseDirectory, file);
+
+  let source: string;
+  try {
+    source = await fs.realpath(candidate);
+  } catch (error) {
+    throw new Error(`TeX attachment does not exist or cannot be accessed: ${file}`, { cause: error });
+  }
 
   const stat = await fs.stat(source);
-  if (!stat.isFile()) throw new Error(`LaTeXML input is not a regular file: ${file}`);
+  if (!stat.isFile()) {
+    throw new Error(`TeX attachment is not a regular file: ${file}`);
+  }
 
-  const html = compileDocument(source);
-  return html;
+  return source;
+}
+
+export async function compileTexDocument(
+  file: string,
+  sourceFilePath: string,
+): Promise<string> {
+  return compileDocument(await resolveTexPath(file, sourceFilePath));
 }
