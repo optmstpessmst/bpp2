@@ -4,3 +4,22 @@ id: a.-academic-recovery
 contest: dagitab-2021
 authors: []
 ---
+
+```tex
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage{amsmath,amssymb}
+\begin{document}
+
+Cindy's research project involves tracing the number of people infected by the Cordon Bleu virus, down to the minute.  She has recorded the number of new cases for each of the first $N$ minutes.  Specifically, she knows that $0$ people were infected at minute $0$, and she recorded that at the $i$th minute, $A_i$ more people were infected by the virus, for each $i$ from $1$ to $N$.  It is guaranteed that the $A_i$ are non-negative integers.
+
+Based on this, she constructed a second array $B$ of $N$ integers, the cumulative number of cases by the $i$th minute.  That is, $B_i$ counts the \emph{total} number of people infected on or before the $i$th minute.
+
+Cindy keeps all her data in her laptop.  Unfortunately, her laptop got infected by a (computer) virus and all the data in her hard drive got scrambled!  Cindy also doesn't have any backups of her data, neither locally or on the cloud.  How irresponsible!  Always back up your data.
+
+The original array $A$ was deleted.  Cindy was able to recover the elements of $B$, but they were shuffled around randomly and ended up in the wrong order!
+
+Given the elements of $B$ in some random order, help Cindy reconstruct the elements of the original array $A$, and give them in the correct order.  It can be shown that $A$ can always be recovered, and furthermore that this answer is unique.
+
+\end{document}
+```
